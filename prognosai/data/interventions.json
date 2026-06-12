@@ -1,0 +1,184 @@
+{
+  "interventions": [
+    {
+      "id": "quit_smoking",
+      "label": "Quit Smoking",
+      "cost": 8,
+      "description": "Complete smoking cessation program",
+      "targets": ["smoking->atherosclerosis","smoking->copd","smoking->lung_cancer","smoking->hypertension","smoking->inflammation"],
+      "risk_reduction": 0.42,
+      "requires": []
+    },
+    {
+      "id": "regular_exercise",
+      "label": "Regular Exercise (3x/week)",
+      "cost": 5,
+      "description": "150+ min moderate aerobic activity weekly",
+      "targets": ["sedentary->obesity","sedentary->insulin_resist","obesity->insulin_resist","insulin_resist->t2_diabetes"],
+      "risk_reduction": 0.38,
+      "requires": []
+    },
+    {
+      "id": "healthy_diet",
+      "label": "Healthy Diet",
+      "cost": 4,
+      "description": "Mediterranean-style diet, reduced processed foods",
+      "targets": ["poor_diet->obesity","poor_diet->high_cholesterol","poor_diet->inflammation"],
+      "risk_reduction": 0.31,
+      "requires": []
+    },
+    {
+      "id": "weight_loss",
+      "label": "Weight Loss Program",
+      "cost": 7,
+      "description": "Structured 10%+ BMI reduction program",
+      "targets": ["obesity->hypertension","obesity->insulin_resist","obesity->inflammation","obesity->nafld","obesity->sleep_apnea"],
+      "risk_reduction": 0.44,
+      "requires": ["regular_exercise", "healthy_diet"]
+    },
+    {
+      "id": "reduce_alcohol",
+      "label": "Reduce Alcohol",
+      "cost": 3,
+      "description": "Limit to recommended weekly limits",
+      "targets": ["alcohol->nafld","alcohol->hypertension","alcohol->depression"],
+      "risk_reduction": 0.29,
+      "requires": []
+    },
+    {
+      "id": "bp_medication",
+      "label": "Blood Pressure Medication",
+      "cost": 5,
+      "description": "ACE inhibitors or ARBs as prescribed",
+      "targets": ["hypertension->atherosclerosis","hypertension->kidney_disease","hypertension->stroke"],
+      "risk_reduction": 0.36,
+      "requires": []
+    },
+    {
+      "id": "statin_therapy",
+      "label": "Statin Therapy",
+      "cost": 4,
+      "description": "Cholesterol-lowering medication",
+      "targets": ["high_cholesterol->atherosclerosis","high_cholesterol->metabolic_synd"],
+      "risk_reduction": 0.33,
+      "requires": []
+    },
+    {
+      "id": "stress_management",
+      "label": "Stress Management",
+      "cost": 3,
+      "description": "Mindfulness, CBT, or therapy program",
+      "targets": ["sedentary->depression","sleep_apnea->depression","alcohol->depression"],
+      "risk_reduction": 0.22,
+      "requires": []
+    },
+    {
+      "id": "sleep_hygiene",
+      "label": "Sleep Hygiene Program",
+      "cost": 2,
+      "description": "Consistent sleep schedule and environment",
+      "targets": ["sleep_apnea->hypertension","sleep_apnea->depression"],
+      "risk_reduction": 0.19,
+      "requires": []
+    },
+    {
+      "id": "cpap_therapy",
+      "label": "CPAP Therapy",
+      "cost": 6,
+      "description": "Continuous positive airway pressure for sleep apnea",
+      "targets": ["sleep_apnea->hypertension","sleep_apnea->depression"],
+      "risk_reduction": 0.35,
+      "requires": ["sleep_hygiene"]
+    },
+    {
+      "id": "diabetes_prevention",
+      "label": "Diabetes Prevention Program",
+      "cost": 6,
+      "description": "Structured lifestyle intervention for pre-diabetes",
+      "targets": ["insulin_resist->t2_diabetes","metabolic_synd->t2_diabetes","inflammation->t2_diabetes"],
+      "risk_reduction": 0.41,
+      "requires": ["regular_exercise", "healthy_diet"]
+    },
+    {
+      "id": "cardiac_rehab",
+      "label": "Cardiac Rehabilitation",
+      "cost": 8,
+      "description": "Supervised cardiac exercise and education",
+      "targets": ["atherosclerosis->heart_attack","atherosclerosis->heart_failure"],
+      "risk_reduction": 0.38,
+      "requires": ["regular_exercise"]
+    },
+    {
+      "id": "antiplatelet",
+      "label": "Antiplatelet Therapy (Aspirin)",
+      "cost": 2,
+      "description": "Low-dose aspirin for cardiovascular prevention",
+      "targets": ["atherosclerosis->heart_attack","atherosclerosis->stroke"],
+      "risk_reduction": 0.24,
+      "requires": []
+    },
+    {
+      "id": "renal_protection",
+      "label": "Renal Protection Protocol",
+      "cost": 5,
+      "description": "Medication + diet to slow kidney disease progression",
+      "targets": ["kidney_disease->renal_failure","t2_diabetes->kidney_disease"],
+      "risk_reduction": 0.31,
+      "requires": ["bp_medication"]
+    },
+    {
+      "id": "liver_diet",
+      "label": "Liver-Protective Diet",
+      "cost": 3,
+      "description": "Low-fat, low-sugar diet targeting NAFLD",
+      "targets": ["nafld->liver_cirrhosis","nafld->metabolic_synd"],
+      "risk_reduction": 0.26,
+      "requires": ["healthy_diet"]
+    },
+    {
+      "id": "smoking_nrt",
+      "label": "Nicotine Replacement Therapy",
+      "cost": 4,
+      "description": "Patches or gum to support smoking cessation",
+      "targets": ["smoking->copd","smoking->lung_cancer"],
+      "risk_reduction": 0.28,
+      "requires": []
+    },
+    {
+      "id": "pulm_rehab",
+      "label": "Pulmonary Rehabilitation",
+      "cost": 7,
+      "description": "Breathing exercises and conditioning for COPD",
+      "targets": ["copd->heart_failure","copd->lung_cancer"],
+      "risk_reduction": 0.27,
+      "requires": ["quit_smoking"]
+    },
+    {
+      "id": "metformin",
+      "label": "Metformin (Pre-Diabetes)",
+      "cost": 3,
+      "description": "Medication for insulin resistance management",
+      "targets": ["insulin_resist->t2_diabetes","metabolic_synd->t2_diabetes"],
+      "risk_reduction": 0.32,
+      "requires": []
+    },
+    {
+      "id": "inflammation_diet",
+      "label": "Anti-Inflammatory Diet",
+      "cost": 3,
+      "description": "Omega-3 rich, antioxidant diet",
+      "targets": ["inflammation->atherosclerosis","inflammation->t2_diabetes"],
+      "risk_reduction": 0.23,
+      "requires": ["healthy_diet"]
+    },
+    {
+      "id": "comprehensive_program",
+      "label": "Comprehensive Lifestyle Overhaul",
+      "cost": 10,
+      "description": "Full structured program: diet + exercise + mental health",
+      "targets": ["obesity->hypertension","obesity->insulin_resist","sedentary->obesity","poor_diet->obesity","insulin_resist->t2_diabetes","hypertension->atherosclerosis"],
+      "risk_reduction": 0.55,
+      "requires": ["regular_exercise", "healthy_diet", "stress_management"]
+    }
+  ]
+}

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrognosAI — Results</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+</head>
+<body>
+  <div class="page-wrap">
+
+    <header class="site-header">
+      <div class="logo">Prognos<span>AI</span></div>
+      <a href="/" class="back-link">← New Analysis</a>
+    </header>
+
+    <main class="results-main" id="results-main" style="display:none">
+
+      <!-- Risk score summary bar -->
+      <div class="summary-bar">
+        <div class="summary-item">
+          <span class="summary-label">Peak Risk Score</span>
+          <span class="summary-value risk-score" id="peak-risk">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Cascade Path</span>
+          <span class="summary-value" id="cascade-length">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Max Risk Reduction</span>
+          <span class="summary-value green" id="max-reduction">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Engine 1 Runtime</span>
+          <span class="summary-value mono" id="e1-runtime">—</span>
+        </div>
+      </div>
+
+      <!-- Two-column layout -->
+      <div class="results-grid">
+
+        <!-- LEFT: Disease cascade graph -->
+        <div class="panel panel-graph">
+          <div class="panel-header">
+            <h2 class="panel-title">Disease Cascade Graph</h2>
+            <div class="panel-controls">
+              <button class="btn-sm" id="btn-replay">↺ Replay</button>
+              <button class="btn-sm" id="btn-reset-zoom">Reset zoom</button>
+            </div>
+          </div>
+          <p class="panel-note">Nodes on the highest-risk cascade path light up red. Hover for details.</p>
+          <div id="graph-container"></div>
+          <div class="cascade-path-bar" id="cascade-path-bar"></div>
+        </div>
+
+        <!-- RIGHT: Engine 2 + sensitivity -->
+        <div class="panel-right">
+
+          <!-- Interventions comparison -->
+          <div class="panel panel-interventions">
+            <div class="panel-header">
+              <h2 class="panel-title">Intervention Optimizer</h2>
+              <span class="badge-gap" id="gap-badge"></span>
+            </div>
+            <div class="intervention-tabs">
+              <button class="tab-btn active" data-tab="dp">Knapsack DP (exact)</button>
+              <button class="tab-btn" data-tab="greedy">Greedy baseline</button>
+            </div>
+            <div id="tab-dp" class="tab-content">
+              <div class="intervention-meta" id="dp-meta"></div>
+              <div class="intervention-list" id="dp-list"></div>
+            </div>
+            <div id="tab-greedy" class="tab-content hidden">
+              <div class="intervention-meta" id="greedy-meta"></div>
+              <div class="intervention-list" id="greedy-list"></div>
+            </div>
+          </div>
+
+          <!-- Sensitivity analysis -->
+          <div class="panel panel-sensitivity">
+            <h2 class="panel-title">Habit Impact Ranking</h2>
+            <p class="panel-note">How much each habit improvement reduces your peak risk score.</p>
+            <div id="sensitivity-bars"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Complexity benchmarks -->
+      <div class="panel panel-benchmarks">
+        <h2 class="panel-title">Complexity Benchmarks</h2>
+        <p class="panel-note">DAG DP vs brute-force path enumeration &nbsp;|&nbsp; Greedy vs exact knapsack</p>
+        <div class="benchmark-grid" id="benchmark-grid"></div>
+      </div>
+
+    </main>
+
+    <div id="loading-screen" class="loading-screen">
+      <div class="loading-inner">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading results...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+  <script>
+    const raw = sessionStorage.getItem('prognosai_result');
+    if (!raw) {
+      window.location.href = '/';
+    } else {
+      const data = JSON.parse(raw);
+      initResults(data);
+    }
+
+    function initResults(data) {
+      // Summary bar
+      document.getElementById('peak-risk').textContent = data.engine1.peak_risk.toFixed(3);
+      document.getElementById('cascade-length').textContent = data.engine1.worst_path.length + ' nodes';
+      document.getElementById('max-reduction').textContent = '+' + data.engine2.dp.total_reduction.toFixed(3);
+      document.getElementById('e1-runtime').textContent = data.engine1.runtime_ms.toFixed(3) + ' ms';
+
+      // Color peak risk
+      const riskEl = document.getElementById('peak-risk');
+      const r = data.engine1.peak_risk;
+      riskEl.className = 'summary-value risk-score ' + (r > 2.5 ? 'risk-high' : r > 1.5 ? 'risk-mid' : 'risk-low');
+
+      // Cascade path bar
+      const pathBar = document.getElementById('cascade-path-bar');
+      pathBar.innerHTML = data.engine1.worst_path_labels.map((label, i) => {
+        const isLast = i === data.engine1.worst_path_labels.length - 1;
+        return `<span class="path-node">${label}</span>${!isLast ? '<span class="path-arrow">→</span>' : ''}`;
+      }).join('');
+
+      // Engine 2 — DP tab
+      renderInterventions('dp', data.engine2.dp, data.engine2.budget);
+      renderInterventions('greedy', data.engine2.greedy, data.engine2.budget);
+
+      // Gap badge
+      const gapBadge = document.getElementById('gap-badge');
+      if (!data.engine2.greedy_is_optimal) {
+        gapBadge.textContent = `DP finds +${data.engine2.gap.toFixed(3)} more vs greedy`;
+        gapBadge.className = 'badge-gap badge-gap--better';
+      } else {
+        gapBadge.textContent = 'Greedy = optimal here';
+        gapBadge.className = 'badge-gap badge-gap--equal';
+      }
+
+      // Tabs
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+          btn.classList.add('active');
+          document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+        });
+      });
+
+      // Sensitivity bars
+      renderSensitivity(data.sensitivity, data.engine1.peak_risk);
+
+      // Benchmarks
+      renderBenchmarks(data.benchmarks);
+
+      // Show page
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('results-main').style.display = 'block';
+
+      // Draw graph (D3) — this fires the cascade animation
+      drawDiseaseGraph(data.graph, data.node_annotations, data.engine1.worst_path);
+
+      // Replay button
+      document.getElementById('btn-replay').addEventListener('click', () => {
+        drawDiseaseGraph(data.graph, data.node_annotations, data.engine1.worst_path);
+      });
+    }
+
+    function renderInterventions(type, result, budget) {
+      const metaEl = document.getElementById(type + '-meta');
+      const listEl = document.getElementById(type + '-list');
+
+      metaEl.innerHTML = `
+        <span class="meta-item"><b>Cost used:</b> ${result.cost_used} / ${budget} units</span>
+        <span class="meta-item"><b>Risk reduction:</b> ${result.total_reduction.toFixed(3)}</span>
+        <span class="meta-item mono"><b>Runtime:</b> ${result.runtime_ms.toFixed(3)} ms</span>
+      `;
+
+      listEl.innerHTML = result.selected.map(item => `
+        <div class="intervention-item">
+          <div class="int-header">
+            <span class="int-label">${item.label}</span>
+            <span class="int-cost">Cost: ${item.cost}</span>
+          </div>
+          <div class="int-desc">${item.description}</div>
+          <div class="int-bar-wrap">
+            <div class="int-bar" style="width:${Math.min(item.risk_reduction * 200, 100)}%"></div>
+            <span class="int-reduction">−${item.risk_reduction.toFixed(3)} risk</span>
+          </div>
+        </div>
+      `).join('') || '<p class="empty-msg">No interventions selected within budget.</p>';
+    }
+
+    function renderSensitivity(sensitivity, baseRisk) {
+      const container = document.getElementById('sensitivity-bars');
+      const maxReduction = Math.max(...sensitivity.map(s => s.marginal_reduction), 0.001);
+
+      container.innerHTML = sensitivity.map((s, i) => `
+        <div class="sens-row">
+          <span class="sens-label">${s.label}</span>
+          <div class="sens-bar-track">
+            <div class="sens-bar" style="width:0%" data-width="${(s.marginal_reduction / maxReduction * 100).toFixed(1)}%"></div>
+          </div>
+          <span class="sens-val ${s.marginal_reduction > 0 ? 'green' : 'muted'}">
+            ${s.marginal_reduction > 0 ? '−' + s.marginal_reduction.toFixed(3) : '—'}
+            ${s.pct_improvement > 0 ? `<span class="sens-pct">(${s.pct_improvement}%)</span>` : ''}
+          </span>
+        </div>
+      `).join('');
+
+      // Animate bars in
+      setTimeout(() => {
+        document.querySelectorAll('.sens-bar').forEach((bar, i) => {
+          setTimeout(() => {
+            bar.style.width = bar.dataset.width;
+          }, i * 80);
+        });
+      }, 600);
+    }
+
+    function renderBenchmarks(b) {
+      const grid = document.getElementById('benchmark-grid');
+      const items = [
+        {
+          title: 'DAG DP (Engine 1)',
+          value: b.dp_runtime_ms.toFixed(4) + ' ms',
+          complexity: 'O(V+E)',
+          color: 'purple',
+          note: `V=25 nodes, E≈54 edges`
+        },
+        {
+          title: 'Brute-force paths',
+          value: b.brute_force_runtime_ms.toFixed(2) + ' ms',
+          complexity: 'O(2^V)',
+          color: 'coral',
+          note: `${b.brute_force_paths_checked.toLocaleString()} paths checked`
+        },
+        {
+          title: 'Knapsack DP',
+          value: b.knapsack_dp_runtime_ms.toFixed(4) + ' ms',
+          complexity: 'O(n·W)',
+          color: 'teal',
+          note: 'n=20 interventions'
+        },
+        {
+          title: 'Greedy selector',
+          value: b.knapsack_greedy_runtime_ms.toFixed(4) + ' ms',
+          complexity: 'O(n log n)',
+          color: 'amber',
+          note: 'Sort by value/cost ratio'
+        },
+      ];
+
+      grid.innerHTML = items.map(item => `
+        <div class="benchmark-card benchmark-${item.color}">
+          <div class="bench-title">${item.title}</div>
+          <div class="bench-value">${item.value}</div>
+          <div class="bench-complexity">${item.complexity}</div>
+          <div class="bench-note">${item.note}</div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrognosAI — Predictive Health Risk Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="page-wrap">
+
+    <header class="site-header">
+      <div class="logo">Prognos<span>AI</span></div>
+      <p class="site-tagline">Predictive Health Risk Engine &mdash; Algorithms &amp; Data Structures Capstone</p>
+    </header>
+
+    <main class="form-main">
+      <div class="form-card">
+        <h1 class="form-title">Patient Profile</h1>
+        <p class="form-subtitle">Adjust each slider to reflect your current lifestyle habits. The engine will propagate risk through a disease graph and find your optimal intervention bundle.</p>
+
+        <form id="patient-form">
+
+          <section class="habit-section">
+            <h2 class="section-heading">Lifestyle Habits</h2>
+            <p class="section-note">0 = current negative habit fully present &nbsp;|&nbsp; 1 = fully improved</p>
+
+            <div class="habits-grid">
+
+              <div class="habit-row">
+                <div class="habit-header">
+                  <span class="habit-icon">🚬</span>
+                  <label class="habit-label" for="smoking">Smoking</label>
+                  <span class="habit-val" id="smoking-val">0.0</span>
+                </div>
+                <input type="range" id="smoking" name="smoking" min="0" max="1" step="0.05" value="0"
+                       oninput="updateVal('smoking', this.value)">
+                <div class="habit-hints"><span>Still smoking</span><span>Quit</span></div>
+              </div>
+
+              <div class="habit-row">
+                <div class="habit-header">
+                  <span class="habit-icon">🏃</span>
+                  <label class="habit-label" for="exercise">Exercise</label>
+                  <span class="habit-val" id="exercise-val">0.0</span>
+                </div>
+                <input type="range" id="exercise" name="exercise" min="0" max="1" step="0.05" value="0"
+                       oninput="updateVal('exercise', this.value)">
+                <div class="habit-hints"><span>Sedentary</span><span>Very active</span></div>
+              </div>
+
+              <div class="habit-row">
+                <div class="habit-header">
+                  <span class="habit-icon">🥗</span>
+                  <label class="habit-label" for="diet">Diet Quality</label>
+                  <span class="habit-val" id="diet-val">0.0</span>
+                </div>
+                <input type="range" id="diet" name="diet" min="0" max="1" step="0.05" value="0"
+                       oninput="updateVal('diet', this.value)">
+                <div class="habit-hints"><span>Poor diet</span><span>Excellent diet</span></div>
+              </div>
+
+              <div class="habit-row">
+                <div class="habit-header">
+                  <span class="habit-icon">🍷</span>
+                  <label class="habit-label" for="alcohol">Alcohol</label>
+                  <span class="habit-val" id="alcohol-val">0.0</span>
+                </div>
+                <input type="range" id="alcohol" name="alcohol" min="0" max="1" step="0.05" value="0"
+                       oninput="updateVal('alcohol', this.value)">
+                <div class="habit-hints"><span>Heavy drinking</span><span>None</span></div>
+              </div>
+
+              <div class="habit-row">
+                <div class="habit-header">
+                  <span class="habit-icon">⚖️</span>
+                  <label class="habit-label" for="bmi">BMI / Weight</label>
+                  <span class="habit-val" id="bmi-val">0.0</span>
+                </div>
+                <input type="range" id="bmi" name="bmi" min="0" max="1" step="0.05" value="0"
+                       oninput="updateVal('bmi', this.value)">
+                <div class="habit-hints"><span>Obese</span><span>Healthy BMI</span></div>
+              </div>
+
+              <div class="habit-row">
+                <div class="habit-header">
+                  <span class="habit-icon">😴</span>
+                  <label class="habit-label" for="sleep">Sleep Quality</label>
+                  <span class="habit-val" id="sleep-val">0.0</span>
+                </div>
+                <input type="range" id="sleep" name="sleep" min="0" max="1" step="0.05" value="0"
+                       oninput="updateVal('sleep', this.value)">
+                <div class="habit-hints"><span>Poor sleep</span><span>Excellent sleep</span></div>
+              </div>
+
+            </div>
+          </section>
+
+          <section class="budget-section">
+            <h2 class="section-heading">Intervention Budget</h2>
+            <p class="section-note">How much total effort can you commit to preventive interventions? (effort units, 5&ndash;50)</p>
+            <div class="budget-row">
+              <input type="range" id="budget" name="budget" min="5" max="50" step="1" value="20"
+                     oninput="updateBudget(this.value)">
+              <span class="budget-display" id="budget-val">20 units</span>
+            </div>
+          </section>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-analyze" id="analyze-btn">
+              <span id="btn-text">Run Analysis</span>
+              <span id="btn-spinner" class="spinner hidden"></span>
+            </button>
+            <p class="form-disclaimer">No personal data is stored. All computation runs locally.</p>
+          </div>
+
+        </form>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    function updateVal(name, value) {
+      document.getElementById(name + '-val').textContent = parseFloat(value).toFixed(2);
+      const slider = document.getElementById(name);
+      const pct = (value / slider.max) * 100;
+      slider.style.setProperty('--fill', pct + '%');
+    }
+
+    function updateBudget(value) {
+      document.getElementById('budget-val').textContent = value + ' units';
+      const slider = document.getElementById('budget');
+      const pct = ((value - slider.min) / (slider.max - slider.min)) * 100;
+      slider.style.setProperty('--fill', pct + '%');
+    }
+
+    // Initialize fill on page load
+    document.querySelectorAll('input[type=range]').forEach(s => {
+      const name = s.id;
+      if (name === 'budget') {
+        updateBudget(s.value);
+      } else {
+        updateVal(name, s.value);
+      }
+    });
+
+    document.getElementById('patient-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('analyze-btn');
+      const btnText = document.getElementById('btn-text');
+      const spinner = document.getElementById('btn-spinner');
+
+      btn.disabled = true;
+      btnText.textContent = 'Analyzing...';
+      spinner.classList.remove('hidden');
+
+      const habits = {};
+      ['smoking','exercise','diet','alcohol','bmi','sleep'].forEach(key => {
+        habits[key] = parseFloat(document.getElementById(key).value);
+      });
+      const budget = parseInt(document.getElementById('budget').value);
+
+      try {
+        const resp = await fetch('/analyze', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({habits, budget})
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+
+        // Store result and navigate to results view
+        sessionStorage.setItem('prognosai_result', JSON.stringify(data));
+        window.location.href = '/results';
+      } catch (err) {
+        alert('Analysis failed: ' + err.message);
+        btn.disabled = false;
+        btnText.textContent = 'Run Analysis';
+        spinner.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
