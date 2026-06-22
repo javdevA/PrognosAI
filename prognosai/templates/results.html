@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PrognosAI — Results</title>
+  <title>PrognosAI - Results</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 </head>
@@ -12,24 +12,24 @@
 
   <header class="site-header">
     <div class="logo">Prognos<span>AI</span></div>
-    <a href="/" class="back-link">← New patient</a>
+    <a href="/" class="back-link">New patient</a>
   </header>
 
   <div id="loading-screen" class="loading-screen">
     <div class="loading-ring"></div>
-    <div class="loading-text">Loading results…</div>
+    <div class="loading-text">Running analysis...</div>
   </div>
 
   <div id="results-body" class="hidden">
 
     <div class="patient-chip">
-      <div class="patient-avatar" id="patient-avatar">—</div>
+      <div class="patient-avatar" id="patient-avatar">--</div>
       <div class="patient-details">
-        <div class="patient-name" id="patient-name">—</div>
-        <div class="patient-meta" id="patient-meta">—</div>
+        <div class="patient-name" id="patient-name">--</div>
+        <div class="patient-meta" id="patient-meta">--</div>
       </div>
       <div class="patient-risk">
-        <div class="risk-number" id="risk-number">—</div>
+        <div class="risk-number" id="risk-number">--</div>
         <div class="risk-label">peak risk score</div>
       </div>
     </div>
@@ -43,21 +43,18 @@
 
     <div class="tab-panel active" id="tab-graph">
       <div class="graph-controls">
-        <button class="btn-sm" id="btn-replay">↺ Replay animation</button>
+        <button class="btn-sm" id="btn-replay">Replay animation</button>
         <button class="btn-sm" id="btn-reset-zoom">Reset zoom</button>
       </div>
-
       <div class="graph-legend">
-        <div class="legend-item"><div class="legend-dot" style="color:#BA7517;background:#FAEEDA"></div> Habit / root risk</div>
-        <div class="legend-item"><div class="legend-dot" style="color:#534AB7;background:#EEEDFE"></div> Condition</div>
-        <div class="legend-item"><div class="legend-dot" style="color:#1D9E75;background:#E1F5EE"></div> Disease</div>
-        <div class="legend-item"><div class="legend-dot" style="color:#D85A30;background:#FAECE7"></div> Severe outcome</div>
-        <div class="legend-item"><div class="legend-dot" style="color:#A32D2D;background:#FCEBEB"></div> Terminal</div>
-        <div class="legend-item"><div class="legend-dot" style="color:#E24B4A;background:#E24B4A"></div> Cascade path</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#BA7517;background:#FAEEDA"></div>Habit / root risk</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#534AB7;background:#EEEDFE"></div>Condition</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#1D9E75;background:#E1F5EE"></div>Disease</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#D85A30;background:#FAECE7"></div>Severe outcome</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#A32D2D;background:#FCEBEB"></div>Terminal</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#E24B4A;background:#E24B4A"></div>Cascade path</div>
       </div>
-
       <div id="graph-container"></div>
-
       <div class="cascade-path-wrap">
         <div class="cascade-path-label">Highest-risk cascade path</div>
         <div class="cascade-path-nodes" id="cascade-path-nodes"></div>
@@ -65,17 +62,21 @@
     </div>
 
     <div class="tab-panel" id="tab-interventions">
+      <div style="margin-bottom:12px;font-size:13px;color:var(--text-sec);line-height:1.6">
+        Only interventions that target edges on this patient's cascade path are considered.
+        Two algorithms are compared: the exact <strong>0/1 Knapsack DP</strong> (O(n&middot;W))
+        and a <strong>Greedy baseline</strong> (O(n log n)) that sorts by risk-reduction-per-hour and picks greedily.
+      </div>
       <div class="int-solver-tabs">
         <button class="solver-btn active" id="solver-dp">
-          <div class="solver-btn-label">Knapsack DP — exact optimum</div>
-          <div class="solver-btn-sub" id="dp-sub">—</div>
+          <div class="solver-btn-label">Knapsack DP - exact optimum</div>
+          <div class="solver-btn-sub" id="dp-sub">--</div>
         </button>
         <button class="solver-btn" id="solver-greedy">
           <div class="solver-btn-label">Greedy baseline</div>
-          <div class="solver-btn-sub" id="greedy-sub">—</div>
+          <div class="solver-btn-sub" id="greedy-sub">--</div>
         </button>
       </div>
-
       <div class="gap-notice" id="gap-notice"></div>
       <div class="int-stats-row" id="int-stats-row"></div>
       <div class="int-list" id="int-list"></div>
@@ -83,22 +84,39 @@
 
     <div class="tab-panel" id="tab-summary">
       <div class="summary-grid" id="summary-grid"></div>
-      <div class="sens-section-title">Habit impact — which single change reduces your risk the most?</div>
+
+      <div style="margin-top:24px;margin-bottom:8px">
+        <div class="sens-section-title">
+          Sensitivity analysis
+          <span style="font-size:12px;font-weight:400;font-family:monospace;color:var(--purple);margin-left:8px">O(k * (V+E))</span>
+        </div>
+        <p style="font-size:12.5px;color:var(--text-sec);margin-top:6px;margin-bottom:14px;line-height:1.65">
+          For each of the k=6 habit inputs, the full DAG DP (Engine 1) is rerun with that habit
+          set to its maximum improvement. The bar shows how much the peak risk score drops as a result.
+          A dash means fully improving that habit would not change this patient's cascade path.
+        </p>
+      </div>
       <div class="sens-rows" id="sens-rows"></div>
     </div>
 
     <div class="tab-panel" id="tab-benchmarks">
+      <div style="margin-bottom:16px;font-size:13px;color:var(--text-sec);line-height:1.65">
+        Actual measured runtimes for each algorithm used in this analysis.
+        <strong>DAG DP vs Brute-force:</strong> both find the highest-risk cascade path,
+        but brute-force enumerates all possible paths (O(2<sup>V</sup>)) while DAG DP
+        processes each node and edge exactly once (O(V+E)).
+        <strong>Knapsack DP vs Greedy:</strong> both select interventions within the weekly hour budget,
+        but greedy can pick a suboptimal combination that DP avoids.
+      </div>
       <div class="bench-grid" id="bench-grid"></div>
       <div class="bench-comparison" style="margin-top:14px">
-        <div class="bench-comp-title">Runtime comparison — all four approaches</div>
+        <div class="bench-comp-title">Runtime comparison - all four approaches on this patient</div>
         <div id="bench-bars"></div>
       </div>
     </div>
 
   </div>
 </div>
-
-<div class="graph-tooltip" id="tooltip"></div>
 
 <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
 <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
@@ -120,24 +138,28 @@ function boot(data) {
   document.getElementById('patient-name').textContent = fullName || 'Patient';
 
   const metaParts = [];
-  if (p.gender)  metaParts.push(p.gender.charAt(0).toUpperCase() + p.gender.slice(1));
-  if (p.age)     metaParts.push('Age ' + p.age);
-  if (p.bmi)     metaParts.push('BMI ' + p.bmi);
-  if (p.weight && p.height) metaParts.push(p.weight + ' kg · ' + p.height + ' cm');
-  if (p.smokingStatus === 'current')  metaParts.push('Active smoker');
-  if (p.smokingStatus === 'former')   metaParts.push('Former smoker');
-  if (p.familyHistory && p.familyHistory !== 'none') metaParts.push('Fam. history: ' + p.familyHistory);
+  if (p.gender)   metaParts.push(p.gender.charAt(0).toUpperCase() + p.gender.slice(1));
+  if (p.age)      metaParts.push('Age ' + p.age);
+  if (p.bmi)      metaParts.push('BMI ' + p.bmi);
+  if (p.weight && p.height) metaParts.push(p.weight + ' kg - ' + p.height + ' cm');
+  if (p.smokingStatus === 'current') metaParts.push('Active smoker');
+  else if (p.smokingStatus === 'former') metaParts.push('Former smoker');
+  if (p.familyHistory && p.familyHistory !== 'none')
+    metaParts.push('Family history: ' + p.familyHistory.replace(/-/g,' '));
+  if (p.existingConditions && p.existingConditions !== 'none')
+    metaParts.push('Diagnosed: ' + p.existingConditions.replace(/-/g,' '));
   if (p.weeklyHours) metaParts.push(p.weeklyHours + ' h/week available');
-  document.getElementById('patient-meta').textContent = metaParts.join('  ·  ');
+  document.getElementById('patient-meta').textContent = metaParts.join('  |  ');
 
   const riskEl = document.getElementById('risk-number');
   riskEl.textContent = e1.peak_risk.toFixed(2);
-  riskEl.className = 'risk-number ' + (e1.peak_risk > 2.5 ? 'risk-high' : e1.peak_risk > 1.5 ? 'risk-mid' : 'risk-low');
+  riskEl.className = 'risk-number ' +
+    (e1.peak_risk > 2.5 ? 'risk-high' : e1.peak_risk > 1.5 ? 'risk-mid' : 'risk-low');
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'summary')    animateSensBars();
@@ -145,19 +167,24 @@ function boot(data) {
     });
   });
 
-  const pathNodes = document.getElementById('cascade-path-nodes');
-  e1.worst_path_labels.forEach((label, i) => {
-    const span = document.createElement('span');
-    span.className = 'path-node';
-    span.textContent = label;
-    pathNodes.appendChild(span);
-    if (i < e1.worst_path_labels.length - 1) {
-      const arr = document.createElement('span');
-      arr.className = 'path-arrow';
-      arr.textContent = '→';
-      pathNodes.appendChild(arr);
-    }
-  });
+  if (e1.worst_path_labels.length === 0) {
+    document.getElementById('cascade-path-nodes').innerHTML =
+      '<span style="color:var(--text-ter);font-size:13px">No active disease cascade for this patient.</span>';
+  } else {
+    const pathNodes = document.getElementById('cascade-path-nodes');
+    e1.worst_path_labels.forEach((label, i) => {
+      const span = document.createElement('span');
+      span.className = 'path-node';
+      span.textContent = label;
+      pathNodes.appendChild(span);
+      if (i < e1.worst_path_labels.length - 1) {
+        const arr = document.createElement('span');
+        arr.className = 'path-arrow';
+        arr.textContent = '→';
+        pathNodes.appendChild(arr);
+      }
+    });
+  }
 
   document.getElementById('btn-replay').addEventListener('click', () => {
     drawDiseaseGraph(data.graph, data.node_annotations, e1.worst_path);
@@ -168,28 +195,34 @@ function boot(data) {
   const weeklyHours  = p.weeklyHours || 5;
 
   document.getElementById('dp-sub').textContent =
-    'Reduction: ' + dpResult.total_reduction.toFixed(3) +
-    '  ·  ' + dpResult.cost_used + ' of ' + weeklyHours + ' h/week used';
+    'Risk reduction: ' + dpResult.total_reduction.toFixed(3) +
+    '  -  ' + dpResult.cost_used + ' of ' + weeklyHours + ' h/week used';
 
   document.getElementById('greedy-sub').textContent =
-    'Reduction: ' + greedyResult.total_reduction.toFixed(3) +
-    '  ·  ' + greedyResult.cost_used + ' of ' + weeklyHours + ' h/week used';
+    'Risk reduction: ' + greedyResult.total_reduction.toFixed(3) +
+    '  -  ' + greedyResult.cost_used + ' of ' + weeklyHours + ' h/week used';
 
   const gapNotice = document.getElementById('gap-notice');
-  if (!e2.greedy_is_optimal) {
+  if (e2.no_interventions) {
+    gapNotice.className = 'gap-notice equal';
+    gapNotice.textContent = 'No interventions apply - this patient has no active disease cascade.';
+  } else if (e2.gap > 0.001) {
     gapNotice.className = 'gap-notice better';
-    gapNotice.textContent = 'Knapsack DP finds ' + e2.gap.toFixed(3) +
-      ' additional risk reduction compared to greedy with the same weekly hours. Greedy picked the wrong combination.';
+    gapNotice.innerHTML =
+      'Knapsack DP finds <strong>' + e2.gap.toFixed(3) + '</strong> more risk reduction than greedy ' +
+      'within the same weekly hours. Greedy picked a suboptimal combination.';
   } else {
     gapNotice.className = 'gap-notice equal';
-    gapNotice.textContent = 'Greedy happens to be optimal for this patient profile. DP confirms the same selection.';
+    gapNotice.textContent = 'Both algorithms select the same combination for this patient.';
   }
 
   function renderInterventions(result) {
     document.getElementById('int-stats-row').innerHTML = `
       <div class="int-stat">
-        <span class="int-stat-label">Hours used</span>
-        <span class="int-stat-value">${result.cost_used} <span style="font-size:14px;color:var(--text-ter);font-weight:400">/ ${weeklyHours} h/week</span></span>
+        <span class="int-stat-label">Hours committed</span>
+        <span class="int-stat-value">${result.cost_used}
+          <span style="font-size:13px;color:var(--text-ter);font-weight:400">/ ${weeklyHours} h/week</span>
+        </span>
       </div>
       <div class="int-stat">
         <span class="int-stat-label">Total risk reduction</span>
@@ -200,7 +233,7 @@ function boot(data) {
         <span class="int-stat-value">${result.selected.length}</span>
       </div>
       <div class="int-stat">
-        <span class="int-stat-label">Runtime</span>
+        <span class="int-stat-label">Algorithm runtime</span>
         <span class="int-stat-value mono" style="font-size:15px">${result.runtime_ms.toFixed(3)} ms</span>
       </div>
     `;
@@ -218,10 +251,10 @@ function boot(data) {
             <div class="int-bar-track">
               <div class="int-bar-fill" style="width:${(item.risk_reduction / maxRed * 100).toFixed(0)}%"></div>
             </div>
-            <span class="int-reduction-val">−${item.risk_reduction.toFixed(3)} risk</span>
+            <span class="int-reduction-val">-${item.risk_reduction.toFixed(3)} risk</span>
           </div>
         </div>`).join('')
-      : '<p style="color:var(--text-ter);font-size:13px">No interventions fit within the available weekly hours.</p>';
+      : '<p style="color:var(--text-ter);font-size:13px;padding:12px 0">No interventions selected.</p>';
   }
 
   renderInterventions(dpResult);
@@ -231,7 +264,6 @@ function boot(data) {
     document.getElementById('solver-greedy').classList.remove('active');
     renderInterventions(dpResult);
   });
-
   document.getElementById('solver-greedy').addEventListener('click', () => {
     document.getElementById('solver-greedy').classList.add('active');
     document.getElementById('solver-dp').classList.remove('active');
@@ -242,22 +274,22 @@ function boot(data) {
     <div class="stat-card">
       <div class="stat-card-label">Peak risk score</div>
       <div class="stat-card-value ${e1.peak_risk > 2.5 ? 'risk-high' : e1.peak_risk > 1.5 ? 'risk-mid' : 'risk-low'}">${e1.peak_risk.toFixed(2)}</div>
-      <div class="stat-card-sub">Worst-case cascade total</div>
+      <div class="stat-card-sub">Cumulative probability along worst cascade path</div>
     </div>
     <div class="stat-card">
-      <div class="stat-card-label">Cascade length</div>
+      <div class="stat-card-label">Cascade depth</div>
       <div class="stat-card-value">${e1.worst_path.length}</div>
-      <div class="stat-card-sub">diseases in path</div>
+      <div class="stat-card-sub">diseases in the highest-risk chain</div>
     </div>
     <div class="stat-card">
       <div class="stat-card-label">Max risk reduction</div>
-      <div class="stat-card-value" style="color:var(--teal-dk)">−${dpResult.total_reduction.toFixed(3)}</div>
-      <div class="stat-card-sub">within ${weeklyHours} h/week</div>
+      <div class="stat-card-value" style="color:var(--teal-dk)">-${dpResult.total_reduction.toFixed(3)}</div>
+      <div class="stat-card-sub">within ${weeklyHours} h/week (Knapsack DP)</div>
     </div>
     <div class="stat-card">
       <div class="stat-card-label">Engine 1 runtime</div>
       <div class="stat-card-value mono" style="font-size:17px">${e1.runtime_ms.toFixed(3)} ms</div>
-      <div class="stat-card-sub">O(V+E) — DAG DP</div>
+      <div class="stat-card-sub">Kahn's topo sort + DAG DP - O(V+E)</div>
     </div>
   `;
 
@@ -266,10 +298,13 @@ function boot(data) {
     <div class="sens-row">
       <span class="sens-row-label">${s.label}</span>
       <div class="sens-track">
-        <div class="sens-fill" data-width="${(s.marginal_reduction / maxRed * 100).toFixed(1)}%"></div>
+        <div class="sens-fill" data-width="${Math.max(0, s.marginal_reduction / maxRed * 100).toFixed(1)}%"></div>
       </div>
       <span class="sens-value ${s.marginal_reduction <= 0 ? 'neutral' : ''}">
-        ${s.marginal_reduction > 0 ? '−' + s.marginal_reduction.toFixed(3) : '—'}
+        ${s.marginal_reduction > 0
+          ? '-' + s.marginal_reduction.toFixed(3) +
+            '<span style="font-size:11px;color:var(--text-ter);margin-left:4px">(' + s.pct_improvement + '%)</span>'
+          : '--'}
       </span>
     </div>
   `).join('');
@@ -277,28 +312,28 @@ function boot(data) {
   const b = data.benchmarks;
   document.getElementById('bench-grid').innerHTML = `
     <div class="bench-card purple">
-      <div class="bench-name">DAG DP — Engine 1</div>
+      <div class="bench-name">DAG DP - Engine 1</div>
       <div class="bench-time">${b.dp_runtime_ms.toFixed(4)} ms</div>
       <div class="bench-complexity">O(V+E)</div>
-      <div class="bench-note">V=25 nodes, E≈54 edges</div>
+      <div class="bench-note">Processes each of the ${data.graph.nodes.length} nodes and ~${data.graph.edges.length} edges exactly once</div>
     </div>
     <div class="bench-card coral">
-      <div class="bench-name">Brute-force paths</div>
+      <div class="bench-name">Brute-force (same problem)</div>
       <div class="bench-time">${b.brute_force_runtime_ms.toFixed(3)} ms</div>
-      <div class="bench-complexity">O(2^V)</div>
-      <div class="bench-note">${b.brute_force_paths_checked.toLocaleString()} paths checked</div>
+      <div class="bench-complexity">O(2<sup>V</sup>)</div>
+      <div class="bench-note">Checked ${b.brute_force_paths_checked.toLocaleString()} path combinations on a subset of 18 nodes</div>
     </div>
     <div class="bench-card teal">
-      <div class="bench-name">Knapsack DP — Engine 2</div>
+      <div class="bench-name">Knapsack DP - Engine 2</div>
       <div class="bench-time">${b.knapsack_dp_runtime_ms.toFixed(4)} ms</div>
-      <div class="bench-complexity">O(n·W)</div>
-      <div class="bench-note">n=20 interventions</div>
+      <div class="bench-complexity">O(n&middot;W)</div>
+      <div class="bench-note">Exact optimal selection across ${e2.candidate_count || 'relevant'} candidate interventions</div>
     </div>
     <div class="bench-card amber">
-      <div class="bench-name">Greedy selector</div>
+      <div class="bench-name">Greedy (same problem)</div>
       <div class="bench-time">${b.knapsack_greedy_runtime_ms.toFixed(4)} ms</div>
       <div class="bench-complexity">O(n log n)</div>
-      <div class="bench-note">Sort by value/cost ratio</div>
+      <div class="bench-note">Faster but can pick a suboptimal combination</div>
     </div>
   `;
 
@@ -308,13 +343,14 @@ function boot(data) {
     { label: 'Knapsack DP', val: b.knapsack_dp_runtime_ms,     color: 'var(--teal)'   },
     { label: 'Greedy',      val: b.knapsack_greedy_runtime_ms, color: 'var(--amber)'  },
   ];
-  const maxTime = Math.max(...benchItems.map(i => i.val));
+  const maxTime = Math.max(...benchItems.map(i => i.val), 0.001);
 
   document.getElementById('bench-bars').innerHTML = benchItems.map(item => `
     <div class="comp-row">
       <span class="comp-label">${item.label}</span>
       <div class="comp-bar-track">
-        <div class="comp-bar" data-width="${Math.max((item.val / maxTime * 100), 2).toFixed(1)}%"
+        <div class="comp-bar"
+             data-width="${Math.max((item.val / maxTime * 100), 2).toFixed(1)}%"
              style="background:${item.color};width:0%"></div>
       </div>
       <span class="comp-val">${item.val.toFixed(4)} ms</span>

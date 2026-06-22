@@ -13,7 +13,7 @@
       "id": "regular_exercise",
       "label": "Regular Exercise",
       "cost": 3,
-      "description": "150+ min moderate aerobic activity per week (3–4 sessions)",
+      "description": "150+ min moderate aerobic activity per week (3-4 sessions)",
       "targets": ["sedentary->obesity","sedentary->insulin_resist","obesity->insulin_resist","insulin_resist->t2_diabetes"],
       "risk_reduction": 0.38,
       "requires": []
@@ -22,7 +22,7 @@
       "id": "healthy_diet",
       "label": "Dietary Change",
       "cost": 2,
-      "description": "Mediterranean-style diet — meal prep and planning time included",
+      "description": "Mediterranean-style diet - meal prep and planning time included",
       "targets": ["poor_diet->obesity","poor_diet->high_cholesterol","poor_diet->inflammation"],
       "risk_reduction": 0.31,
       "requires": []
@@ -76,7 +76,7 @@
       "id": "sleep_hygiene",
       "label": "Sleep Improvement",
       "cost": 1,
-      "description": "Sleep hygiene programme — consistent schedule and environment adjustments",
+      "description": "Sleep hygiene programme - consistent schedule and environment adjustments",
       "targets": ["sleep_apnea->hypertension","sleep_apnea->depression"],
       "risk_reduction": 0.19,
       "requires": []
@@ -85,7 +85,7 @@
       "id": "cpap_therapy",
       "label": "CPAP Therapy",
       "cost": 2,
-      "description": "Continuous positive airway pressure device for sleep apnea — clinic setup and follow-up",
+      "description": "Continuous positive airway pressure device for sleep apnea - clinic setup and follow-up",
       "targets": ["sleep_apnea->hypertension","sleep_apnea->depression"],
       "risk_reduction": 0.35,
       "requires": ["sleep_hygiene"]
@@ -112,7 +112,7 @@
       "id": "antiplatelet",
       "label": "Antiplatelet Therapy",
       "cost": 1,
-      "description": "Low-dose aspirin — monthly prescription review",
+      "description": "Low-dose aspirin - monthly prescription review",
       "targets": ["atherosclerosis->heart_attack","atherosclerosis->stroke"],
       "risk_reduction": 0.24,
       "requires": []
@@ -148,7 +148,7 @@
       "id": "metformin",
       "label": "Metformin (Pre-Diabetes)",
       "cost": 1,
-      "description": "Oral medication for insulin resistance — monthly GP review",
+      "description": "Oral medication for insulin resistance - monthly GP review",
       "targets": ["insulin_resist->t2_diabetes","metabolic_synd->t2_diabetes"],
       "risk_reduction": 0.32,
       "requires": []
@@ -175,7 +175,7 @@
       "id": "comprehensive_program",
       "label": "Full Lifestyle Overhaul",
       "cost": 10,
-      "description": "Comprehensive programme: personal trainer, dietitian, and therapist — 10h/week commitment",
+      "description": "Comprehensive programme: personal trainer, dietitian, and therapist - 10h/week commitment",
       "targets": ["obesity->hypertension","obesity->insulin_resist","sedentary->obesity","poor_diet->obesity","insulin_resist->t2_diabetes","hypertension->atherosclerosis"],
       "risk_reduction": 0.55,
       "requires": ["regular_exercise", "healthy_diet", "stress_management"]
