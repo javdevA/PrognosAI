@@ -26,10 +26,6 @@ def load_interventions() -> list:
 
 
 def validate_dependencies(selected_ids: list, all_interventions: list) -> bool:
-    """
-    Checks that all required prerequisites are satisfied in selected_ids.
-    Returns True if valid, False if a dependency is missing.
-    """
     selected_set = set(selected_ids)
     id_map = {item["id"]: item for item in all_interventions}
     for sid in selected_ids:
@@ -41,10 +37,6 @@ def validate_dependencies(selected_ids: list, all_interventions: list) -> bool:
 
 
 def filter_valid_candidates(interventions: list) -> list:
-    """
-    Returns only interventions whose dependencies can be satisfied
-    (i.e., their required items exist in the catalog).
-    """
     all_ids = {item["id"] for item in interventions}
     valid = []
     for item in interventions:
@@ -56,18 +48,13 @@ def filter_valid_candidates(interventions: list) -> list:
 def greedy_solve(interventions: list, budget: int, worst_path: list) -> dict:
     """
     Greedy 0/1 knapsack: sort by risk_reduction/cost, pick greedily.
-
-    Complexity: O(n log n) for sorting + O(n) for selection = O(n log n)
-
-    Returns dict with selected interventions, total risk reduction, runtime.
+    Complexity: O(n log n)
     """
     t_start = time.perf_counter()
 
-    # Score interventions by path relevance + density
     path_set = set(worst_path)
     scored = []
     for item in interventions:
-        # Boost score if intervention targets edges on the worst cascade path
         path_relevance = sum(
             1 for t in item.get("targets", [])
             if any(n in t for n in path_set)
@@ -83,7 +70,6 @@ def greedy_solve(interventions: list, budget: int, worst_path: list) -> dict:
 
     for density, item in scored:
         if item["cost"] <= remaining_budget:
-            # Check dependency requirements
             all_reqs_met = all(req in selected_ids for req in item.get("requires", []))
             if all_reqs_met:
                 selected.append(item)
@@ -105,21 +91,14 @@ def greedy_solve(interventions: list, budget: int, worst_path: list) -> dict:
 def dp_solve(interventions: list, budget: int, worst_path: list) -> dict:
     """
     Exact 0/1 knapsack DP.
-
-    dp[i][w] = max risk_reduction achievable using first i items with budget w.
-
+    dp[i][w] = max risk_reduction using first i items with budget w.
     Complexity: O(n * W)
-      n = number of interventions (~20)
-      W = budget (e.g. 20-50 effort units)
-
-    Returns dict with selected interventions, total risk reduction, DP table, runtime.
     """
     t_start = time.perf_counter()
 
     n = len(interventions)
     W = budget
 
-    # Build DP table: (n+1) x (W+1)
     dp_table = [[0.0] * (W + 1) for _ in range(n + 1)]
 
     for i in range(1, n + 1):
@@ -128,16 +107,12 @@ def dp_solve(interventions: list, budget: int, worst_path: list) -> dict:
         value = item["risk_reduction"]
 
         for w in range(W + 1):
-            # Option A: skip item i
             dp_table[i][w] = dp_table[i - 1][w]
-
-            # Option B: take item i (if it fits)
             if cost <= w:
                 candidate = dp_table[i - 1][w - cost] + value
                 if candidate > dp_table[i][w]:
                     dp_table[i][w] = candidate
 
-    # Backtrack to find selected items
     selected_ids = []
     w = W
     for i in range(n, 0, -1):
@@ -147,7 +122,6 @@ def dp_solve(interventions: list, budget: int, worst_path: list) -> dict:
 
     selected_ids.reverse()
 
-    # Validate dependency constraints — remove violators
     id_map = {item["id"]: item for item in interventions}
     valid_selected = []
     confirmed_ids = []
@@ -161,7 +135,6 @@ def dp_solve(interventions: list, budget: int, worst_path: list) -> dict:
     cost_used = sum(item["cost"] for item in valid_selected)
     runtime_ms = (time.perf_counter() - t_start) * 1000
 
-    # Serialize DP table sample (first 5 rows x first 15 cols) for visualization
     dp_sample = [row[:min(15, W + 1)] for row in dp_table[:min(6, n + 1)]]
 
     return {
@@ -178,14 +151,34 @@ def solve(budget: int, worst_path: list) -> dict:
     """
     Main entry point for Engine 2.
     Runs both greedy and DP, returns comparison.
+
+    If the patient has no cascade (healthy, no diagnoses), there is
+    nothing to prevent — return empty results.
     """
     interventions = load_interventions()
     valid = filter_valid_candidates(interventions)
 
+    if not worst_path:
+        empty = {
+            "selected": [],
+            "selected_ids": [],
+            "total_reduction": 0.0,
+            "cost_used": 0,
+            "runtime_ms": 0.0,
+        }
+        return {
+            "greedy": dict(empty),
+            "dp": {**empty, "dp_table_sample": []},
+            "gap": 0.0,
+            "greedy_is_optimal": True,
+            "budget": budget,
+            "all_interventions": valid,
+            "no_interventions": True,
+        }
+
     greedy_result = greedy_solve(valid, budget, worst_path)
     dp_result = dp_solve(valid, budget, worst_path)
 
-    # Compute difference to highlight where greedy suboptimal
     gap = round(dp_result["total_reduction"] - greedy_result["total_reduction"], 4)
     greedy_optimal = gap <= 0.001
 
@@ -196,4 +189,5 @@ def solve(budget: int, worst_path: list) -> dict:
         "greedy_is_optimal": greedy_optimal,
         "budget": budget,
         "all_interventions": valid,
+        "no_interventions": False,
     }
