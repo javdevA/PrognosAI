@@ -3,184 +3,424 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PrognosAI — Predictive Health Risk Engine</title>
+  <title>PrognosAI — Patient Intake</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <div class="page-wrap">
+<div class="page-wrap">
 
-    <header class="site-header">
-      <div class="logo">Prognos<span>AI</span></div>
-      <p class="site-tagline">Predictive Health Risk Engine &mdash; Algorithms &amp; Data Structures Capstone</p>
-    </header>
+  <header class="site-header">
+    <div class="logo">Prognos<span>AI</span></div>
+    <div class="site-tagline">Predictive Health Risk Engine</div>
+  </header>
 
-    <main class="form-main">
-      <div class="form-card">
-        <h1 class="form-title">Patient Profile</h1>
-        <p class="form-subtitle">Adjust each slider to reflect your current lifestyle habits. The engine will propagate risk through a disease graph and find your optimal intervention bundle.</p>
+  <div class="form-outer">
 
-        <form id="patient-form">
+    <div class="form-intro">
+      <h1>Patient intake</h1>
+      <p>Fill in the patient's details below. The engine will trace the highest-risk disease cascade and recommend an optimal prevention plan.</p>
+    </div>
 
-          <section class="habit-section">
-            <h2 class="section-heading">Lifestyle Habits</h2>
-            <p class="section-note">0 = current negative habit fully present &nbsp;|&nbsp; 1 = fully improved</p>
+    <form id="patient-form" autocomplete="off">
 
-            <div class="habits-grid">
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">👤</div>
+          <div>
+            <div class="section-title">Personal information</div>
+            <div class="section-subtitle">Basic demographic details</div>
+          </div>
+        </div>
 
-              <div class="habit-row">
-                <div class="habit-header">
-                  <span class="habit-icon">🚬</span>
-                  <label class="habit-label" for="smoking">Smoking</label>
-                  <span class="habit-val" id="smoking-val">0.0</span>
-                </div>
-                <input type="range" id="smoking" name="smoking" min="0" max="1" step="0.05" value="0"
-                       oninput="updateVal('smoking', this.value)">
-                <div class="habit-hints"><span>Still smoking</span><span>Quit</span></div>
-              </div>
+        <div class="field-grid cols-3" style="margin-bottom:16px">
+          <div class="field-block">
+            <label class="field-label" for="first-name">First name</label>
+            <input class="field-input" type="text" id="first-name" placeholder="John" required>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="last-name">Last name</label>
+            <input class="field-input" type="text" id="last-name" placeholder="Doe">
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="age">Age</label>
+            <input class="field-input" type="number" id="age" min="18" max="100" placeholder="45" required>
+          </div>
+        </div>
 
-              <div class="habit-row">
-                <div class="habit-header">
-                  <span class="habit-icon">🏃</span>
-                  <label class="habit-label" for="exercise">Exercise</label>
-                  <span class="habit-val" id="exercise-val">0.0</span>
-                </div>
-                <input type="range" id="exercise" name="exercise" min="0" max="1" step="0.05" value="0"
-                       oninput="updateVal('exercise', this.value)">
-                <div class="habit-hints"><span>Sedentary</span><span>Very active</span></div>
-              </div>
+        <div class="field-block" style="margin-bottom:16px">
+          <div class="field-label">Gender</div>
+          <div class="gender-group">
+            <button type="button" class="gender-btn" data-value="male">Male</button>
+            <button type="button" class="gender-btn" data-value="female">Female</button>
+            <button type="button" class="gender-btn" data-value="other">Other</button>
+          </div>
+          <input type="hidden" id="gender" value="">
+        </div>
 
-              <div class="habit-row">
-                <div class="habit-header">
-                  <span class="habit-icon">🥗</span>
-                  <label class="habit-label" for="diet">Diet Quality</label>
-                  <span class="habit-val" id="diet-val">0.0</span>
-                </div>
-                <input type="range" id="diet" name="diet" min="0" max="1" step="0.05" value="0"
-                       oninput="updateVal('diet', this.value)">
-                <div class="habit-hints"><span>Poor diet</span><span>Excellent diet</span></div>
-              </div>
-
-              <div class="habit-row">
-                <div class="habit-header">
-                  <span class="habit-icon">🍷</span>
-                  <label class="habit-label" for="alcohol">Alcohol</label>
-                  <span class="habit-val" id="alcohol-val">0.0</span>
-                </div>
-                <input type="range" id="alcohol" name="alcohol" min="0" max="1" step="0.05" value="0"
-                       oninput="updateVal('alcohol', this.value)">
-                <div class="habit-hints"><span>Heavy drinking</span><span>None</span></div>
-              </div>
-
-              <div class="habit-row">
-                <div class="habit-header">
-                  <span class="habit-icon">⚖️</span>
-                  <label class="habit-label" for="bmi">BMI / Weight</label>
-                  <span class="habit-val" id="bmi-val">0.0</span>
-                </div>
-                <input type="range" id="bmi" name="bmi" min="0" max="1" step="0.05" value="0"
-                       oninput="updateVal('bmi', this.value)">
-                <div class="habit-hints"><span>Obese</span><span>Healthy BMI</span></div>
-              </div>
-
-              <div class="habit-row">
-                <div class="habit-header">
-                  <span class="habit-icon">😴</span>
-                  <label class="habit-label" for="sleep">Sleep Quality</label>
-                  <span class="habit-val" id="sleep-val">0.0</span>
-                </div>
-                <input type="range" id="sleep" name="sleep" min="0" max="1" step="0.05" value="0"
-                       oninput="updateVal('sleep', this.value)">
-                <div class="habit-hints"><span>Poor sleep</span><span>Excellent sleep</span></div>
-              </div>
-
+        <div class="field-grid cols-3">
+          <div class="field-block">
+            <label class="field-label" for="weight">Weight (kg)</label>
+            <input class="field-input" type="number" id="weight" min="30" max="300" placeholder="80" oninput="syncBMI()">
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="height">Height (cm)</label>
+            <input class="field-input" type="number" id="height" min="100" max="250" placeholder="175" oninput="syncBMI()">
+          </div>
+          <div class="field-block">
+            <label class="field-label">BMI (auto-calculated)</label>
+            <div class="bmi-display" id="bmi-display">
+              <span class="bmi-value" id="bmi-value">—</span>
+              <span class="bmi-category" id="bmi-category"></span>
             </div>
-          </section>
+          </div>
+        </div>
+      </div>
 
-          <section class="budget-section">
-            <h2 class="section-heading">Intervention Budget</h2>
-            <p class="section-note">How much total effort can you commit to preventive interventions? (effort units, 5&ndash;50)</p>
-            <div class="budget-row">
-              <input type="range" id="budget" name="budget" min="5" max="50" step="1" value="20"
-                     oninput="updateBudget(this.value)">
-              <span class="budget-display" id="budget-val">20 units</span>
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">🩺</div>
+          <div>
+            <div class="section-title">Medical history</div>
+            <div class="section-subtitle">Current status and known risk factors</div>
+          </div>
+        </div>
+
+        <div class="field-grid cols-2" style="margin-bottom:16px">
+          <div class="field-block">
+            <label class="field-label" for="smoking-status">Smoking status</label>
+            <select class="field-input" id="smoking-status" onchange="syncSmoking()">
+              <option value="never">Non-smoker</option>
+              <option value="former">Former smoker (quit)</option>
+              <option value="current">Active smoker</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="family-history">Family history</label>
+            <select class="field-input" id="family-history">
+              <option value="none">None known</option>
+              <option value="cardiovascular">Cardiovascular disease</option>
+              <option value="diabetes">Type 2 diabetes</option>
+              <option value="cancer">Cancer</option>
+              <option value="multiple">Multiple conditions</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-block">
+          <label class="field-label" for="existing-conditions">Existing diagnosed conditions</label>
+          <select class="field-input" id="existing-conditions">
+            <option value="none">None</option>
+            <option value="hypertension">Hypertension</option>
+            <option value="diabetes">Type 2 diabetes</option>
+            <option value="high-cholesterol">High cholesterol</option>
+            <option value="multiple">Multiple conditions</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">🏃</div>
+          <div>
+            <div class="section-title">Lifestyle habits</div>
+            <div class="section-subtitle">Rate how healthy each habit currently is — 0 = worst state, 1 = fully healthy</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div class="habit-block locked">
+            <div class="habit-top">
+              <span class="habit-name">Smoking</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="locked-badge">Auto-set from medical history</span>
+                <span class="habit-number" id="val-smoking">0.00</span>
+              </div>
             </div>
-          </section>
+            <input type="range" id="h-smoking" min="0" max="1" step="0.05" value="0" disabled>
+            <div class="habit-hints"><span>Active smoker</span><span>Never smoked</span></div>
+          </div>
+        </div>
 
-          <div class="form-actions">
-            <button type="submit" class="btn-analyze" id="analyze-btn">
-              <span id="btn-text">Run Analysis</span>
-              <span id="btn-spinner" class="spinner hidden"></span>
-            </button>
-            <p class="form-disclaimer">No personal data is stored. All computation runs locally.</p>
+        <div class="habits-grid">
+
+          <div class="habit-block">
+            <div class="habit-top">
+              <span class="habit-name">Physical activity</span>
+              <span class="habit-number" id="val-exercise">0.00</span>
+            </div>
+            <input type="range" id="h-exercise" min="0" max="1" step="0.05" value="0" oninput="updateHabit('exercise', this.value)">
+            <div class="habit-hints"><span>Sedentary</span><span>Very active</span></div>
           </div>
 
-        </form>
+          <div class="habit-block">
+            <div class="habit-top">
+              <span class="habit-name">Diet quality</span>
+              <span class="habit-number" id="val-diet">0.00</span>
+            </div>
+            <input type="range" id="h-diet" min="0" max="1" step="0.05" value="0" oninput="updateHabit('diet', this.value)">
+            <div class="habit-hints"><span>Poor diet</span><span>Excellent diet</span></div>
+          </div>
+
+          <div class="habit-block">
+            <div class="habit-top">
+              <span class="habit-name">Alcohol consumption</span>
+              <span class="habit-number" id="val-alcohol">0.00</span>
+            </div>
+            <input type="range" id="h-alcohol" min="0" max="1" step="0.05" value="0" oninput="updateHabit('alcohol', this.value)">
+            <div class="habit-hints"><span>Heavy drinking</span><span>None</span></div>
+          </div>
+
+          <div class="habit-block locked">
+            <div class="habit-top">
+              <span class="habit-name">Weight / BMI status</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="locked-badge">Auto-set from weight & height</span>
+                <span class="habit-number" id="val-bmi">0.00</span>
+              </div>
+            </div>
+            <input type="range" id="h-bmi" min="0" max="1" step="0.05" value="0" disabled>
+            <div class="habit-hints"><span>Obese</span><span>Healthy BMI</span></div>
+          </div>
+
+          <div class="habit-block">
+            <div class="habit-top">
+              <span class="habit-name">Sleep quality</span>
+              <span class="habit-number" id="val-sleep">0.00</span>
+            </div>
+            <input type="range" id="h-sleep" min="0" max="1" step="0.05" value="0" oninput="updateHabit('sleep', this.value)">
+            <div class="habit-hints"><span>Poor sleep</span><span>Excellent sleep</span></div>
+          </div>
+
+        </div>
       </div>
-    </main>
 
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">⏱️</div>
+          <div>
+            <div class="section-title">Available time for preventive care</div>
+            <div class="section-subtitle">How many hours per week can the patient realistically dedicate to health interventions?</div>
+          </div>
+        </div>
+
+        <div class="budget-wrap">
+          <div class="budget-slider-wrap">
+            <input type="range" id="budget" min="1" max="15" step="1" value="5" oninput="updateBudget(this.value)">
+          </div>
+          <div class="budget-readout" id="budget-display">5 h/week</div>
+        </div>
+        <div class="budget-note">
+          This represents real weekly hours — across exercise sessions, medical appointments, meal planning, therapy, and similar activities.
+          Each recommended intervention is costed in hours per week so the total never exceeds what the patient can manage.
+          <br><br>
+          <strong>Examples:</strong> Regular exercise (4 h/week) &nbsp;·&nbsp; Dietary change (3 h/week) &nbsp;·&nbsp; GP visit (1–2 h/week) &nbsp;·&nbsp; Therapy session (2 h/week)
+        </div>
+      </div>
+
+      <div class="form-submit-wrap">
+        <button type="submit" class="btn-primary" id="submit-btn">
+          <span id="btn-label">Run analysis</span>
+          <div class="spinner" id="btn-spinner"></div>
+        </button>
+        <p class="form-note">No data is stored or transmitted externally. All computation runs locally.</p>
+      </div>
+
+    </form>
   </div>
+</div>
 
-  <script>
-    function updateVal(name, value) {
-      document.getElementById(name + '-val').textContent = parseFloat(value).toFixed(2);
-      const slider = document.getElementById(name);
-      const pct = (value / slider.max) * 100;
-      slider.style.setProperty('--fill', pct + '%');
+<script>
+  const habitKeys = ['smoking','exercise','diet','alcohol','bmi','sleep'];
+
+  function updateHabit(name, val) {
+    const v = parseFloat(val);
+    document.getElementById('val-' + name).textContent = v.toFixed(2);
+    const slider = document.getElementById('h-' + name);
+    slider.style.setProperty('--pct', (v * 100) + '%');
+  }
+
+  function setHabitLocked(name, val) {
+    const v = Math.max(0, Math.min(1, parseFloat(val)));
+    document.getElementById('val-' + name).textContent = v.toFixed(2);
+    const slider = document.getElementById('h-' + name);
+    slider.value = v;
+    slider.style.setProperty('--pct', (v * 100) + '%');
+  }
+
+  function syncBMI() {
+    const w = parseFloat(document.getElementById('weight').value);
+    const h = parseFloat(document.getElementById('height').value);
+    const bmiVal = document.getElementById('bmi-value');
+    const bmiCat = document.getElementById('bmi-category');
+
+    if (!w || !h || h <= 0) {
+      bmiVal.textContent = '—';
+      bmiCat.textContent = '';
+      bmiCat.className = 'bmi-category';
+      setHabitLocked('bmi', 0);
+      return;
     }
 
-    function updateBudget(value) {
-      document.getElementById('budget-val').textContent = value + ' units';
-      const slider = document.getElementById('budget');
-      const pct = ((value - slider.min) / (slider.max - slider.min)) * 100;
-      slider.style.setProperty('--fill', pct + '%');
-    }
+    const bmi = w / Math.pow(h / 100, 2);
+    bmiVal.textContent = bmi.toFixed(1);
 
-    // Initialize fill on page load
-    document.querySelectorAll('input[type=range]').forEach(s => {
-      const name = s.id;
-      if (name === 'budget') {
-        updateBudget(s.value);
-      } else {
-        updateVal(name, s.value);
-      }
+    let cat, cls, habitVal;
+    if (bmi < 18.5)      { cat = 'Underweight'; cls = 'bmi-under';  habitVal = 0.5; }
+    else if (bmi < 25)   { cat = 'Normal';       cls = 'bmi-normal'; habitVal = 1.0; }
+    else if (bmi < 30)   { cat = 'Overweight';   cls = 'bmi-over';   habitVal = 0.4; }
+    else if (bmi < 35)   { cat = 'Obese (I)';    cls = 'bmi-obese';  habitVal = 0.15; }
+    else                  { cat = 'Obese (II+)';  cls = 'bmi-obese';  habitVal = 0.0; }
+
+    bmiCat.textContent = cat;
+    bmiCat.className = 'bmi-category ' + cls;
+    setHabitLocked('bmi', habitVal);
+  }
+
+  function syncSmoking() {
+    const status = document.getElementById('smoking-status').value;
+    let habitVal;
+    if (status === 'never')        habitVal = 1.0;
+    else if (status === 'former')  habitVal = 0.6;
+    else                           habitVal = 0.0;
+    setHabitLocked('smoking', habitVal);
+  }
+
+  function updateBudget(val) {
+    document.getElementById('budget-display').textContent = val + ' h/week';
+    const slider = document.getElementById('budget');
+    const pct = ((val - slider.min) / (slider.max - slider.min)) * 100;
+    slider.style.setProperty('--pct', pct + '%');
+  }
+
+  document.querySelectorAll('.gender-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('gender').value = btn.dataset.value;
+    });
+  });
+
+  habitKeys.forEach(k => {
+    if (k !== 'smoking' && k !== 'bmi') updateHabit(k, 0);
+  });
+  syncSmoking();
+  updateBudget(5);
+
+  // Restore form state if returning from results
+const saved = sessionStorage.getItem('prognosai_form');
+if (saved) {
+  const s = JSON.parse(saved);
+  if (s.firstName) document.getElementById('first-name').value = s.firstName;
+  if (s.lastName)  document.getElementById('last-name').value  = s.lastName;
+  if (s.age)       document.getElementById('age').value        = s.age;
+  if (s.weight)    document.getElementById('weight').value     = s.weight;
+  if (s.height)    document.getElementById('height').value     = s.height;
+  if (s.smokingStatus) {
+    document.getElementById('smoking-status').value = s.smokingStatus;
+    syncSmoking();
+  }
+  if (s.familyHistory)      document.getElementById('family-history').value      = s.familyHistory;
+  if (s.existingConditions) document.getElementById('existing-conditions').value = s.existingConditions;
+  if (s.weight && s.height) syncBMI();
+  if (s.gender) {
+    document.getElementById('gender').value = s.gender;
+    document.querySelectorAll('.gender-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.value === s.gender);
+    });
+  }
+  if (s.habits) {
+    ['exercise','diet','alcohol','sleep'].forEach(k => {
+      const val = s.habits[k] || 0;
+      document.getElementById('h-' + k).value = val;
+      updateHabit(k, val);
+    });
+  }
+  if (s.budget) {
+    document.getElementById('budget').value = s.budget;
+    updateBudget(s.budget);
+  }
+}
+
+  document.getElementById('patient-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const firstName = document.getElementById('first-name').value.trim();
+    const age       = document.getElementById('age').value;
+    const gender    = document.getElementById('gender').value;
+
+    if (!firstName) { alert('Please enter the patient\'s first name.'); return; }
+    if (!age)       { alert('Please enter the patient\'s age.'); return; }
+    if (!gender)    { alert('Please select a gender.'); return; }
+
+    const btn     = document.getElementById('submit-btn');
+    const label   = document.getElementById('btn-label');
+    const spinner = document.getElementById('btn-spinner');
+
+    btn.disabled = true;
+    label.textContent = 'Analyzing…';
+    spinner.classList.add('active');
+
+    const habits = {};
+    habitKeys.forEach(k => {
+      habits[k] = parseFloat(document.getElementById('h-' + k).value);
     });
 
-    document.getElementById('patient-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
+    const weight = parseFloat(document.getElementById('weight').value) || null;
+    const height = parseFloat(document.getElementById('height').value) || null;
+    const bmi    = (weight && height) ? parseFloat((weight / Math.pow(height / 100, 2)).toFixed(1)) : null;
 
-      const btn = document.getElementById('analyze-btn');
-      const btnText = document.getElementById('btn-text');
-      const spinner = document.getElementById('btn-spinner');
+    const rawBudget    = parseInt(document.getElementById('budget').value);
+    const scaledBudget = rawBudget;
 
-      btn.disabled = true;
-      btnText.textContent = 'Analyzing...';
-      spinner.classList.remove('hidden');
+    const patient = {
+      firstName:          firstName,
+      lastName:           document.getElementById('last-name').value.trim(),
+      age:                parseInt(age),
+      gender:             gender,
+      weight:             weight,
+      height:             height,
+      bmi:                bmi,
+      smokingStatus:      document.getElementById('smoking-status').value,
+      familyHistory:      document.getElementById('family-history').value,
+      existingConditions: document.getElementById('existing-conditions').value,
+      weeklyHours:        rawBudget,
+      habits:             habits,
+      budget:             scaledBudget,
+    };
 
-      const habits = {};
-      ['smoking','exercise','diet','alcohol','bmi','sleep'].forEach(key => {
-        habits[key] = parseFloat(document.getElementById(key).value);
+    try {
+      const resp = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patient),
       });
-      const budget = parseInt(document.getElementById('budget').value);
-
-      try {
-        const resp = await fetch('/analyze', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({habits, budget})
-        });
-        const data = await resp.json();
-        if (data.error) throw new Error(data.error);
-
-        // Store result and navigate to results view
-        sessionStorage.setItem('prognosai_result', JSON.stringify(data));
-        window.location.href = '/results';
-      } catch (err) {
-        alert('Analysis failed: ' + err.message);
-        btn.disabled = false;
-        btnText.textContent = 'Run Analysis';
-        spinner.classList.add('hidden');
-      }
-    });
-  </script>
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      // Save form state so it restores on back navigation
+const formState = {
+  firstName: patient.firstName,
+  lastName: patient.lastName,
+  age: patient.age,
+  gender: patient.gender,
+  weight: patient.weight,
+  height: patient.height,
+  smokingStatus: patient.smokingStatus,
+  familyHistory: patient.familyHistory,
+  existingConditions: patient.existingConditions,
+  weeklyHours: patient.weeklyHours,
+  habits: patient.habits,
+  budget: document.getElementById('budget').value,
+};
+sessionStorage.setItem('prognosai_form', JSON.stringify(formState));
+sessionStorage.setItem('prognosai_result', JSON.stringify(data));
+      window.location.href = '/results';
+    } catch (err) {
+      alert('Analysis failed: ' + err.message);
+      btn.disabled = false;
+      label.textContent = 'Run analysis';
+      spinner.classList.remove('active');
+    }
+  });
+</script>
 </body>
 </html>

@@ -8,270 +8,336 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 </head>
 <body>
-  <div class="page-wrap">
+<div class="results-page-wrap">
 
-    <header class="site-header">
-      <div class="logo">Prognos<span>AI</span></div>
-      <a href="/" class="back-link">← New Analysis</a>
-    </header>
+  <header class="site-header">
+    <div class="logo">Prognos<span>AI</span></div>
+    <a href="/" class="back-link">← New patient</a>
+  </header>
 
-    <main class="results-main" id="results-main" style="display:none">
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-ring"></div>
+    <div class="loading-text">Loading results…</div>
+  </div>
 
-      <!-- Risk score summary bar -->
-      <div class="summary-bar">
-        <div class="summary-item">
-          <span class="summary-label">Peak Risk Score</span>
-          <span class="summary-value risk-score" id="peak-risk">—</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Cascade Path</span>
-          <span class="summary-value" id="cascade-length">—</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Max Risk Reduction</span>
-          <span class="summary-value green" id="max-reduction">—</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Engine 1 Runtime</span>
-          <span class="summary-value mono" id="e1-runtime">—</span>
-        </div>
+  <div id="results-body" class="hidden">
+
+    <div class="patient-chip">
+      <div class="patient-avatar" id="patient-avatar">—</div>
+      <div class="patient-details">
+        <div class="patient-name" id="patient-name">—</div>
+        <div class="patient-meta" id="patient-meta">—</div>
+      </div>
+      <div class="patient-risk">
+        <div class="risk-number" id="risk-number">—</div>
+        <div class="risk-label">peak risk score</div>
+      </div>
+    </div>
+
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="graph">Disease graph</button>
+      <button class="tab-btn" data-tab="interventions">Interventions</button>
+      <button class="tab-btn" data-tab="summary">Summary</button>
+      <button class="tab-btn" data-tab="benchmarks">Benchmarks</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-graph">
+      <div class="graph-controls">
+        <button class="btn-sm" id="btn-replay">↺ Replay animation</button>
+        <button class="btn-sm" id="btn-reset-zoom">Reset zoom</button>
       </div>
 
-      <!-- Two-column layout -->
-      <div class="results-grid">
-
-        <!-- LEFT: Disease cascade graph -->
-        <div class="panel panel-graph">
-          <div class="panel-header">
-            <h2 class="panel-title">Disease Cascade Graph</h2>
-            <div class="panel-controls">
-              <button class="btn-sm" id="btn-replay">↺ Replay</button>
-              <button class="btn-sm" id="btn-reset-zoom">Reset zoom</button>
-            </div>
-          </div>
-          <p class="panel-note">Nodes on the highest-risk cascade path light up red. Hover for details.</p>
-          <div id="graph-container"></div>
-          <div class="cascade-path-bar" id="cascade-path-bar"></div>
-        </div>
-
-        <!-- RIGHT: Engine 2 + sensitivity -->
-        <div class="panel-right">
-
-          <!-- Interventions comparison -->
-          <div class="panel panel-interventions">
-            <div class="panel-header">
-              <h2 class="panel-title">Intervention Optimizer</h2>
-              <span class="badge-gap" id="gap-badge"></span>
-            </div>
-            <div class="intervention-tabs">
-              <button class="tab-btn active" data-tab="dp">Knapsack DP (exact)</button>
-              <button class="tab-btn" data-tab="greedy">Greedy baseline</button>
-            </div>
-            <div id="tab-dp" class="tab-content">
-              <div class="intervention-meta" id="dp-meta"></div>
-              <div class="intervention-list" id="dp-list"></div>
-            </div>
-            <div id="tab-greedy" class="tab-content hidden">
-              <div class="intervention-meta" id="greedy-meta"></div>
-              <div class="intervention-list" id="greedy-list"></div>
-            </div>
-          </div>
-
-          <!-- Sensitivity analysis -->
-          <div class="panel panel-sensitivity">
-            <h2 class="panel-title">Habit Impact Ranking</h2>
-            <p class="panel-note">How much each habit improvement reduces your peak risk score.</p>
-            <div id="sensitivity-bars"></div>
-          </div>
-
-        </div>
+      <div class="graph-legend">
+        <div class="legend-item"><div class="legend-dot" style="color:#BA7517;background:#FAEEDA"></div> Habit / root risk</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#534AB7;background:#EEEDFE"></div> Condition</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#1D9E75;background:#E1F5EE"></div> Disease</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#D85A30;background:#FAECE7"></div> Severe outcome</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#A32D2D;background:#FCEBEB"></div> Terminal</div>
+        <div class="legend-item"><div class="legend-dot" style="color:#E24B4A;background:#E24B4A"></div> Cascade path</div>
       </div>
 
-      <!-- Complexity benchmarks -->
-      <div class="panel panel-benchmarks">
-        <h2 class="panel-title">Complexity Benchmarks</h2>
-        <p class="panel-note">DAG DP vs brute-force path enumeration &nbsp;|&nbsp; Greedy vs exact knapsack</p>
-        <div class="benchmark-grid" id="benchmark-grid"></div>
+      <div id="graph-container"></div>
+
+      <div class="cascade-path-wrap">
+        <div class="cascade-path-label">Highest-risk cascade path</div>
+        <div class="cascade-path-nodes" id="cascade-path-nodes"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-interventions">
+      <div class="int-solver-tabs">
+        <button class="solver-btn active" id="solver-dp">
+          <div class="solver-btn-label">Knapsack DP — exact optimum</div>
+          <div class="solver-btn-sub" id="dp-sub">—</div>
+        </button>
+        <button class="solver-btn" id="solver-greedy">
+          <div class="solver-btn-label">Greedy baseline</div>
+          <div class="solver-btn-sub" id="greedy-sub">—</div>
+        </button>
       </div>
 
-    </main>
+      <div class="gap-notice" id="gap-notice"></div>
+      <div class="int-stats-row" id="int-stats-row"></div>
+      <div class="int-list" id="int-list"></div>
+    </div>
 
-    <div id="loading-screen" class="loading-screen">
-      <div class="loading-inner">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">Loading results...</p>
+    <div class="tab-panel" id="tab-summary">
+      <div class="summary-grid" id="summary-grid"></div>
+      <div class="sens-section-title">Habit impact — which single change reduces your risk the most?</div>
+      <div class="sens-rows" id="sens-rows"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-benchmarks">
+      <div class="bench-grid" id="bench-grid"></div>
+      <div class="bench-comparison" style="margin-top:14px">
+        <div class="bench-comp-title">Runtime comparison — all four approaches</div>
+        <div id="bench-bars"></div>
       </div>
     </div>
 
   </div>
+</div>
 
-  <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-  <script>
-    const raw = sessionStorage.getItem('prognosai_result');
-    if (!raw) {
-      window.location.href = '/';
-    } else {
-      const data = JSON.parse(raw);
-      initResults(data);
+<div class="graph-tooltip" id="tooltip"></div>
+
+<script src="{{ url_for('static', filename='js/graph.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+
+<script>
+const raw = sessionStorage.getItem('prognosai_result');
+if (!raw) { window.location.href = '/'; }
+else { boot(JSON.parse(raw)); }
+
+function boot(data) {
+  const p  = data.patient;
+  const e1 = data.engine1;
+  const e2 = data.engine2;
+
+  const initials = ((p.firstName || '?')[0] + (p.lastName || '?')[0]).toUpperCase();
+  document.getElementById('patient-avatar').textContent = initials;
+
+  const fullName = [p.firstName, p.lastName].filter(Boolean).join(' ');
+  document.getElementById('patient-name').textContent = fullName || 'Patient';
+
+  const metaParts = [];
+  if (p.gender)  metaParts.push(p.gender.charAt(0).toUpperCase() + p.gender.slice(1));
+  if (p.age)     metaParts.push('Age ' + p.age);
+  if (p.bmi)     metaParts.push('BMI ' + p.bmi);
+  if (p.weight && p.height) metaParts.push(p.weight + ' kg · ' + p.height + ' cm');
+  if (p.smokingStatus === 'current')  metaParts.push('Active smoker');
+  if (p.smokingStatus === 'former')   metaParts.push('Former smoker');
+  if (p.familyHistory && p.familyHistory !== 'none') metaParts.push('Fam. history: ' + p.familyHistory);
+  if (p.weeklyHours) metaParts.push(p.weeklyHours + ' h/week available');
+  document.getElementById('patient-meta').textContent = metaParts.join('  ·  ');
+
+  const riskEl = document.getElementById('risk-number');
+  riskEl.textContent = e1.peak_risk.toFixed(2);
+  riskEl.className = 'risk-number ' + (e1.peak_risk > 2.5 ? 'risk-high' : e1.peak_risk > 1.5 ? 'risk-mid' : 'risk-low');
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'summary')    animateSensBars();
+      if (btn.dataset.tab === 'benchmarks') animateBenchBars();
+    });
+  });
+
+  const pathNodes = document.getElementById('cascade-path-nodes');
+  e1.worst_path_labels.forEach((label, i) => {
+    const span = document.createElement('span');
+    span.className = 'path-node';
+    span.textContent = label;
+    pathNodes.appendChild(span);
+    if (i < e1.worst_path_labels.length - 1) {
+      const arr = document.createElement('span');
+      arr.className = 'path-arrow';
+      arr.textContent = '→';
+      pathNodes.appendChild(arr);
     }
+  });
 
-    function initResults(data) {
-      // Summary bar
-      document.getElementById('peak-risk').textContent = data.engine1.peak_risk.toFixed(3);
-      document.getElementById('cascade-length').textContent = data.engine1.worst_path.length + ' nodes';
-      document.getElementById('max-reduction').textContent = '+' + data.engine2.dp.total_reduction.toFixed(3);
-      document.getElementById('e1-runtime').textContent = data.engine1.runtime_ms.toFixed(3) + ' ms';
+  document.getElementById('btn-replay').addEventListener('click', () => {
+    drawDiseaseGraph(data.graph, data.node_annotations, e1.worst_path);
+  });
 
-      // Color peak risk
-      const riskEl = document.getElementById('peak-risk');
-      const r = data.engine1.peak_risk;
-      riskEl.className = 'summary-value risk-score ' + (r > 2.5 ? 'risk-high' : r > 1.5 ? 'risk-mid' : 'risk-low');
+  const dpResult     = e2.dp;
+  const greedyResult = e2.greedy;
+  const weeklyHours  = p.weeklyHours || 5;
 
-      // Cascade path bar
-      const pathBar = document.getElementById('cascade-path-bar');
-      pathBar.innerHTML = data.engine1.worst_path_labels.map((label, i) => {
-        const isLast = i === data.engine1.worst_path_labels.length - 1;
-        return `<span class="path-node">${label}</span>${!isLast ? '<span class="path-arrow">→</span>' : ''}`;
-      }).join('');
+  document.getElementById('dp-sub').textContent =
+    'Reduction: ' + dpResult.total_reduction.toFixed(3) +
+    '  ·  ' + dpResult.cost_used + ' of ' + weeklyHours + ' h/week used';
 
-      // Engine 2 — DP tab
-      renderInterventions('dp', data.engine2.dp, data.engine2.budget);
-      renderInterventions('greedy', data.engine2.greedy, data.engine2.budget);
+  document.getElementById('greedy-sub').textContent =
+    'Reduction: ' + greedyResult.total_reduction.toFixed(3) +
+    '  ·  ' + greedyResult.cost_used + ' of ' + weeklyHours + ' h/week used';
 
-      // Gap badge
-      const gapBadge = document.getElementById('gap-badge');
-      if (!data.engine2.greedy_is_optimal) {
-        gapBadge.textContent = `DP finds +${data.engine2.gap.toFixed(3)} more vs greedy`;
-        gapBadge.className = 'badge-gap badge-gap--better';
-      } else {
-        gapBadge.textContent = 'Greedy = optimal here';
-        gapBadge.className = 'badge-gap badge-gap--equal';
-      }
+  const gapNotice = document.getElementById('gap-notice');
+  if (!e2.greedy_is_optimal) {
+    gapNotice.className = 'gap-notice better';
+    gapNotice.textContent = 'Knapsack DP finds ' + e2.gap.toFixed(3) +
+      ' additional risk reduction compared to greedy with the same weekly hours. Greedy picked the wrong combination.';
+  } else {
+    gapNotice.className = 'gap-notice equal';
+    gapNotice.textContent = 'Greedy happens to be optimal for this patient profile. DP confirms the same selection.';
+  }
 
-      // Tabs
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-          btn.classList.add('active');
-          document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
-        });
-      });
+  function renderInterventions(result) {
+    document.getElementById('int-stats-row').innerHTML = `
+      <div class="int-stat">
+        <span class="int-stat-label">Hours used</span>
+        <span class="int-stat-value">${result.cost_used} <span style="font-size:14px;color:var(--text-ter);font-weight:400">/ ${weeklyHours} h/week</span></span>
+      </div>
+      <div class="int-stat">
+        <span class="int-stat-label">Total risk reduction</span>
+        <span class="int-stat-value" style="color:var(--teal-dk)">${result.total_reduction.toFixed(3)}</span>
+      </div>
+      <div class="int-stat">
+        <span class="int-stat-label">Interventions selected</span>
+        <span class="int-stat-value">${result.selected.length}</span>
+      </div>
+      <div class="int-stat">
+        <span class="int-stat-label">Runtime</span>
+        <span class="int-stat-value mono" style="font-size:15px">${result.runtime_ms.toFixed(3)} ms</span>
+      </div>
+    `;
 
-      // Sensitivity bars
-      renderSensitivity(data.sensitivity, data.engine1.peak_risk);
-
-      // Benchmarks
-      renderBenchmarks(data.benchmarks);
-
-      // Show page
-      document.getElementById('loading-screen').style.display = 'none';
-      document.getElementById('results-main').style.display = 'block';
-
-      // Draw graph (D3) — this fires the cascade animation
-      drawDiseaseGraph(data.graph, data.node_annotations, data.engine1.worst_path);
-
-      // Replay button
-      document.getElementById('btn-replay').addEventListener('click', () => {
-        drawDiseaseGraph(data.graph, data.node_annotations, data.engine1.worst_path);
-      });
-    }
-
-    function renderInterventions(type, result, budget) {
-      const metaEl = document.getElementById(type + '-meta');
-      const listEl = document.getElementById(type + '-list');
-
-      metaEl.innerHTML = `
-        <span class="meta-item"><b>Cost used:</b> ${result.cost_used} / ${budget} units</span>
-        <span class="meta-item"><b>Risk reduction:</b> ${result.total_reduction.toFixed(3)}</span>
-        <span class="meta-item mono"><b>Runtime:</b> ${result.runtime_ms.toFixed(3)} ms</span>
-      `;
-
-      listEl.innerHTML = result.selected.map(item => `
-        <div class="intervention-item">
-          <div class="int-header">
-            <span class="int-label">${item.label}</span>
-            <span class="int-cost">Cost: ${item.cost}</span>
+    const maxRed = Math.max(...result.selected.map(i => i.risk_reduction), 0.01);
+    document.getElementById('int-list').innerHTML = result.selected.length
+      ? result.selected.map(item => `
+        <div class="int-card">
+          <div class="int-card-top">
+            <span class="int-card-name">${item.label}</span>
+            <span class="int-card-cost">${item.cost} h/week</span>
           </div>
-          <div class="int-desc">${item.description}</div>
-          <div class="int-bar-wrap">
-            <div class="int-bar" style="width:${Math.min(item.risk_reduction * 200, 100)}%"></div>
-            <span class="int-reduction">−${item.risk_reduction.toFixed(3)} risk</span>
+          <div class="int-card-desc">${item.description}</div>
+          <div class="int-bar-row">
+            <div class="int-bar-track">
+              <div class="int-bar-fill" style="width:${(item.risk_reduction / maxRed * 100).toFixed(0)}%"></div>
+            </div>
+            <span class="int-reduction-val">−${item.risk_reduction.toFixed(3)} risk</span>
           </div>
-        </div>
-      `).join('') || '<p class="empty-msg">No interventions selected within budget.</p>';
-    }
+        </div>`).join('')
+      : '<p style="color:var(--text-ter);font-size:13px">No interventions fit within the available weekly hours.</p>';
+  }
 
-    function renderSensitivity(sensitivity, baseRisk) {
-      const container = document.getElementById('sensitivity-bars');
-      const maxReduction = Math.max(...sensitivity.map(s => s.marginal_reduction), 0.001);
+  renderInterventions(dpResult);
 
-      container.innerHTML = sensitivity.map((s, i) => `
-        <div class="sens-row">
-          <span class="sens-label">${s.label}</span>
-          <div class="sens-bar-track">
-            <div class="sens-bar" style="width:0%" data-width="${(s.marginal_reduction / maxReduction * 100).toFixed(1)}%"></div>
-          </div>
-          <span class="sens-val ${s.marginal_reduction > 0 ? 'green' : 'muted'}">
-            ${s.marginal_reduction > 0 ? '−' + s.marginal_reduction.toFixed(3) : '—'}
-            ${s.pct_improvement > 0 ? `<span class="sens-pct">(${s.pct_improvement}%)</span>` : ''}
-          </span>
-        </div>
-      `).join('');
+  document.getElementById('solver-dp').addEventListener('click', () => {
+    document.getElementById('solver-dp').classList.add('active');
+    document.getElementById('solver-greedy').classList.remove('active');
+    renderInterventions(dpResult);
+  });
 
-      // Animate bars in
-      setTimeout(() => {
-        document.querySelectorAll('.sens-bar').forEach((bar, i) => {
-          setTimeout(() => {
-            bar.style.width = bar.dataset.width;
-          }, i * 80);
-        });
-      }, 600);
-    }
+  document.getElementById('solver-greedy').addEventListener('click', () => {
+    document.getElementById('solver-greedy').classList.add('active');
+    document.getElementById('solver-dp').classList.remove('active');
+    renderInterventions(greedyResult);
+  });
 
-    function renderBenchmarks(b) {
-      const grid = document.getElementById('benchmark-grid');
-      const items = [
-        {
-          title: 'DAG DP (Engine 1)',
-          value: b.dp_runtime_ms.toFixed(4) + ' ms',
-          complexity: 'O(V+E)',
-          color: 'purple',
-          note: `V=25 nodes, E≈54 edges`
-        },
-        {
-          title: 'Brute-force paths',
-          value: b.brute_force_runtime_ms.toFixed(2) + ' ms',
-          complexity: 'O(2^V)',
-          color: 'coral',
-          note: `${b.brute_force_paths_checked.toLocaleString()} paths checked`
-        },
-        {
-          title: 'Knapsack DP',
-          value: b.knapsack_dp_runtime_ms.toFixed(4) + ' ms',
-          complexity: 'O(n·W)',
-          color: 'teal',
-          note: 'n=20 interventions'
-        },
-        {
-          title: 'Greedy selector',
-          value: b.knapsack_greedy_runtime_ms.toFixed(4) + ' ms',
-          complexity: 'O(n log n)',
-          color: 'amber',
-          note: 'Sort by value/cost ratio'
-        },
-      ];
+  document.getElementById('summary-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-card-label">Peak risk score</div>
+      <div class="stat-card-value ${e1.peak_risk > 2.5 ? 'risk-high' : e1.peak_risk > 1.5 ? 'risk-mid' : 'risk-low'}">${e1.peak_risk.toFixed(2)}</div>
+      <div class="stat-card-sub">Worst-case cascade total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Cascade length</div>
+      <div class="stat-card-value">${e1.worst_path.length}</div>
+      <div class="stat-card-sub">diseases in path</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Max risk reduction</div>
+      <div class="stat-card-value" style="color:var(--teal-dk)">−${dpResult.total_reduction.toFixed(3)}</div>
+      <div class="stat-card-sub">within ${weeklyHours} h/week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Engine 1 runtime</div>
+      <div class="stat-card-value mono" style="font-size:17px">${e1.runtime_ms.toFixed(3)} ms</div>
+      <div class="stat-card-sub">O(V+E) — DAG DP</div>
+    </div>
+  `;
 
-      grid.innerHTML = items.map(item => `
-        <div class="benchmark-card benchmark-${item.color}">
-          <div class="bench-title">${item.title}</div>
-          <div class="bench-value">${item.value}</div>
-          <div class="bench-complexity">${item.complexity}</div>
-          <div class="bench-note">${item.note}</div>
-        </div>
-      `).join('');
-    }
-  </script>
+  const maxRed = Math.max(...data.sensitivity.map(s => s.marginal_reduction), 0.001);
+  document.getElementById('sens-rows').innerHTML = data.sensitivity.map(s => `
+    <div class="sens-row">
+      <span class="sens-row-label">${s.label}</span>
+      <div class="sens-track">
+        <div class="sens-fill" data-width="${(s.marginal_reduction / maxRed * 100).toFixed(1)}%"></div>
+      </div>
+      <span class="sens-value ${s.marginal_reduction <= 0 ? 'neutral' : ''}">
+        ${s.marginal_reduction > 0 ? '−' + s.marginal_reduction.toFixed(3) : '—'}
+      </span>
+    </div>
+  `).join('');
+
+  const b = data.benchmarks;
+  document.getElementById('bench-grid').innerHTML = `
+    <div class="bench-card purple">
+      <div class="bench-name">DAG DP — Engine 1</div>
+      <div class="bench-time">${b.dp_runtime_ms.toFixed(4)} ms</div>
+      <div class="bench-complexity">O(V+E)</div>
+      <div class="bench-note">V=25 nodes, E≈54 edges</div>
+    </div>
+    <div class="bench-card coral">
+      <div class="bench-name">Brute-force paths</div>
+      <div class="bench-time">${b.brute_force_runtime_ms.toFixed(3)} ms</div>
+      <div class="bench-complexity">O(2^V)</div>
+      <div class="bench-note">${b.brute_force_paths_checked.toLocaleString()} paths checked</div>
+    </div>
+    <div class="bench-card teal">
+      <div class="bench-name">Knapsack DP — Engine 2</div>
+      <div class="bench-time">${b.knapsack_dp_runtime_ms.toFixed(4)} ms</div>
+      <div class="bench-complexity">O(n·W)</div>
+      <div class="bench-note">n=20 interventions</div>
+    </div>
+    <div class="bench-card amber">
+      <div class="bench-name">Greedy selector</div>
+      <div class="bench-time">${b.knapsack_greedy_runtime_ms.toFixed(4)} ms</div>
+      <div class="bench-complexity">O(n log n)</div>
+      <div class="bench-note">Sort by value/cost ratio</div>
+    </div>
+  `;
+
+  const benchItems = [
+    { label: 'DAG DP',      val: b.dp_runtime_ms,              color: 'var(--purple)' },
+    { label: 'Brute-force', val: b.brute_force_runtime_ms,     color: 'var(--coral)'  },
+    { label: 'Knapsack DP', val: b.knapsack_dp_runtime_ms,     color: 'var(--teal)'   },
+    { label: 'Greedy',      val: b.knapsack_greedy_runtime_ms, color: 'var(--amber)'  },
+  ];
+  const maxTime = Math.max(...benchItems.map(i => i.val));
+
+  document.getElementById('bench-bars').innerHTML = benchItems.map(item => `
+    <div class="comp-row">
+      <span class="comp-label">${item.label}</span>
+      <div class="comp-bar-track">
+        <div class="comp-bar" data-width="${Math.max((item.val / maxTime * 100), 2).toFixed(1)}%"
+             style="background:${item.color};width:0%"></div>
+      </div>
+      <span class="comp-val">${item.val.toFixed(4)} ms</span>
+    </div>
+  `).join('');
+
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('results-body').classList.remove('hidden');
+
+  drawDiseaseGraph(data.graph, data.node_annotations, e1.worst_path);
+}
+
+function animateSensBars() {
+  document.querySelectorAll('.sens-fill').forEach((el, i) => {
+    setTimeout(() => { el.style.width = el.dataset.width; }, i * 80);
+  });
+}
+
+function animateBenchBars() {
+  document.querySelectorAll('.comp-bar').forEach((el, i) => {
+    setTimeout(() => { el.style.width = el.dataset.width; }, i * 120);
+  });
+}
+</script>
 </body>
 </html>

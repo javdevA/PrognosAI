@@ -24,30 +24,20 @@ HABITS = {
 }
 
 
-def analyze(base_habits: dict, base_peak_risk: float) -> list:
+def analyze(base_habits: dict, base_peak_risk: float, existing_conditions: str = "none") -> list:
     """
     For each habit key, simulate full improvement (level=1.0) and rerun DP.
     Measures the drop in peak_risk compared to the baseline.
-
-    Args:
-        base_habits     : dict of current habit improvement levels (0.0-1.0)
-        base_peak_risk  : float, the baseline worst-path risk score
-
-    Returns:
-        List of dicts sorted by marginal_reduction descending:
-        [{habit_key, label, baseline_level, new_risk, marginal_reduction, pct_improvement}]
     """
     results = []
 
     for habit_key, habit_label in HABITS.items():
         baseline_level = base_habits.get(habit_key, 0.0)
 
-        # Simulate full improvement of this habit
         improved_habits = dict(base_habits)
         improved_habits[habit_key] = 1.0
 
-        # Rerun Engine 1 with improved habits
-        dag = build_dag(improved_habits)
+        dag = build_dag(improved_habits, existing_conditions)
         topo_order = topological_sort(dag)
         dp_result = run_risk_dp(dag, topo_order)
 
@@ -67,6 +57,5 @@ def analyze(base_habits: dict, base_peak_risk: float) -> list:
             "pct_improvement": pct_improvement,
         })
 
-    # Sort by marginal_reduction descending (most impactful first)
     results.sort(key=lambda x: -x["marginal_reduction"])
     return results

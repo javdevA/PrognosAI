@@ -3,7 +3,7 @@ engine/pipeline.py
 Main orchestrator — single entry point called by Flask.
 
 Runs the full PrognosAI pipeline:
-  1. Build disease DAG (adjusted for patient habits)
+  1. Build disease DAG (adjusted for patient habits + diagnosed conditions)
   2. Kahn's topological sort
   3. DAG DP — find worst-case cascade path
   4. 0/1 Knapsack + Greedy — find optimal intervention bundle
@@ -25,46 +25,35 @@ from .sensitivity import analyze as sensitivity_analyze
 def run(patient: dict) -> dict:
     """
     Execute the full PrognosAI pipeline for one patient.
-
-    patient dict keys:
-      habits: {
-        smoking  : float 0-1  (0=still smoking, 1=quit)
-        exercise : float 0-1  (0=sedentary, 1=very active)
-        diet     : float 0-1  (0=poor diet, 1=excellent diet)
-        alcohol  : float 0-1  (0=heavy drinker, 1=none)
-        bmi      : float 0-1  (0=obese, 1=healthy BMI)
-        sleep    : float 0-1  (0=poor sleep, 1=excellent sleep)
-      }
-      budget: int  (effort units for intervention selection, 10-50)
-
     Returns a dict ready to be JSON-serialized and sent to the frontend.
     """
     t_total = time.perf_counter()
 
     habits = patient.get("habits", {})
+    existing_conditions = patient.get("existingConditions", "none")
     budget = int(patient.get("budget", 20))
     budget = max(5, min(50, budget))  # clamp to safe range
 
-    # ── Step 1: Build disease DAG ──────────────────────────────────────────────
-    dag = build_dag(habits)
+    # Step 1: Build disease DAG
+    dag = build_dag(habits, existing_conditions)
     graph_data = dag.to_serializable()
 
-    # ── Step 2: Topological sort (Kahn's algorithm) ────────────────────────────
+    # Step 2: Topological sort (Kahn's algorithm)
     topo_order = topological_sort(dag)
 
-    # ── Step 3: DAG DP — risk propagation (Engine 1) ──────────────────────────
+    # Step 3: DAG DP — risk propagation (Engine 1)
     risk_result = run_risk_dp(dag, topo_order)
 
-    # ── Step 4: Knapsack optimizer (Engine 2) ─────────────────────────────────
+    # Step 4: Knapsack optimizer (Engine 2)
     knapsack_result = knapsack_solve(budget, risk_result["worst_path"])
 
-    # ── Step 5: Sensitivity analysis ──────────────────────────────────────────
-    sensitivity_result = sensitivity_analyze(habits, risk_result["peak_risk"])
+    # Step 5: Sensitivity analysis
+    sensitivity_result = sensitivity_analyze(habits, risk_result["peak_risk"], existing_conditions)
 
-    # ── Step 6: Brute-force benchmark (for complexity comparison chart) ────────
+    # Step 6: Brute-force benchmark (for complexity comparison chart)
     bf_result = run_brute_force(dag, max_nodes=18)
 
-    # ── Annotate graph nodes with risk scores for visualization ───────────────
+    # Annotate graph nodes with risk scores for visualization
     worst_path_set = set(risk_result["worst_path"])
     node_annotations = {}
     for node_id in dag.get_all_node_ids():
@@ -79,11 +68,9 @@ def run(patient: dict) -> dict:
     total_runtime_ms = round((time.perf_counter() - t_total) * 1000, 2)
 
     return {
-        # Graph structure for D3 visualization
         "graph": graph_data,
         "node_annotations": node_annotations,
 
-        # Engine 1 results
         "engine1": {
             "topo_order": topo_order,
             "worst_path": risk_result["worst_path"],
@@ -91,9 +78,9 @@ def run(patient: dict) -> dict:
             "peak_risk": risk_result["peak_risk"],
             "dp_scores": {k: round(v, 4) for k, v in risk_result["dp"].items()},
             "runtime_ms": risk_result["runtime_ms"],
+            "no_risk": risk_result.get("no_risk", False),
         },
 
-        # Engine 2 results
         "engine2": {
             "budget": budget,
             "dp": {
@@ -110,12 +97,11 @@ def run(patient: dict) -> dict:
             },
             "gap": knapsack_result["gap"],
             "greedy_is_optimal": knapsack_result["greedy_is_optimal"],
+            "no_interventions": knapsack_result.get("no_interventions", False),
         },
 
-        # Sensitivity analysis
         "sensitivity": sensitivity_result,
 
-        # Complexity benchmarks
         "benchmarks": {
             "dp_runtime_ms": risk_result["runtime_ms"],
             "brute_force_runtime_ms": bf_result["runtime_ms"],
@@ -124,7 +110,6 @@ def run(patient: dict) -> dict:
             "knapsack_greedy_runtime_ms": knapsack_result["greedy"]["runtime_ms"],
         },
 
-        # Meta
         "patient": patient,
         "total_runtime_ms": total_runtime_ms,
     }
