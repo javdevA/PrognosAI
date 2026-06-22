@@ -2,15 +2,15 @@
 engine/pipeline.py
 Main orchestrator — single entry point called by Flask.
 
-Runs the full PrognosAI pipeline:
-  1. Build disease DAG (adjusted for patient habits)
-  2. Kahn's topological sort
-  3. DAG DP — find worst-case cascade path
-  4. 0/1 Knapsack + Greedy — find optimal intervention bundle
-  5. Sensitivity analysis — rank habits by marginal impact
-  6. Brute-force benchmark (small subgraph) for complexity demo
+Full PrognosAI pipeline:
+  1. Build disease DAG adjusted for patient habits + diagnosed conditions
+  2. Kahn's topological sort  — O(V+E)
+  3. DAG DP heaviest path     — O(V+E)  [Engine 1]
+  4. 0/1 Knapsack + Greedy   — O(n*W)  [Engine 2]
+  5. Sensitivity analysis     — O(k*(V+E))
+  6. Brute-force benchmark    — O(2^V subset, limited to 18 nodes)
 
-Returns one clean JSON-serializable result object.
+Returns one fully-safe JSON-serializable result dict.
 """
 
 import time
@@ -23,108 +23,103 @@ from .sensitivity import analyze as sensitivity_analyze
 
 
 def run(patient: dict) -> dict:
-    """
-    Execute the full PrognosAI pipeline for one patient.
-
-    patient dict keys:
-      habits: {
-        smoking  : float 0-1  (0=still smoking, 1=quit)
-        exercise : float 0-1  (0=sedentary, 1=very active)
-        diet     : float 0-1  (0=poor diet, 1=excellent diet)
-        alcohol  : float 0-1  (0=heavy drinker, 1=none)
-        bmi      : float 0-1  (0=obese, 1=healthy BMI)
-        sleep    : float 0-1  (0=poor sleep, 1=excellent sleep)
-      }
-      budget: int  (effort units for intervention selection, 10-50)
-
-    Returns a dict ready to be JSON-serialized and sent to the frontend.
-    """
     t_total = time.perf_counter()
 
-    habits = patient.get("habits", {})
-    budget = int(patient.get("budget", 20))
-    budget = max(5, min(50, budget))  # clamp to safe range
+    # ── Parse patient input safely ────────────────────────────────────────────
+    raw_habits = patient.get("habits", {})
+    habits = {}
+    for key in ["smoking", "exercise", "diet", "alcohol", "bmi", "sleep"]:
+        val = float(raw_habits.get(key, 0.0))
+        habits[key] = max(0.0, min(1.0, val))
 
-    # ── Step 1: Build disease DAG ──────────────────────────────────────────────
-    dag = build_dag(habits)
+    existing_conditions = str(patient.get("existingConditions", "none")).strip().lower()
+    budget = int(patient.get("budget", 15))
+    budget = max(3, min(50, budget))
+
+    # ── Step 1: Build DAG ─────────────────────────────────────────────────────
+    dag = build_dag(habits, existing_conditions)
     graph_data = dag.to_serializable()
 
-    # ── Step 2: Topological sort (Kahn's algorithm) ────────────────────────────
+    # ── Step 2: Topological sort ──────────────────────────────────────────────
     topo_order = topological_sort(dag)
 
-    # ── Step 3: DAG DP — risk propagation (Engine 1) ──────────────────────────
+    # ── Step 3: DAG DP (Engine 1) ─────────────────────────────────────────────
     risk_result = run_risk_dp(dag, topo_order)
+    worst_path  = risk_result["worst_path"]
+    peak_risk   = risk_result["peak_risk"]
+    no_risk     = risk_result.get("no_risk", False)
 
-    # ── Step 4: Knapsack optimizer (Engine 2) ─────────────────────────────────
-    knapsack_result = knapsack_solve(budget, risk_result["worst_path"])
+    # ── Step 4: Knapsack (Engine 2) ───────────────────────────────────────────
+    knapsack_result = knapsack_solve(budget, worst_path)
+
+    kn_dp     = knapsack_result["dp"]
+    kn_greedy = knapsack_result["greedy"]
 
     # ── Step 5: Sensitivity analysis ──────────────────────────────────────────
-    sensitivity_result = sensitivity_analyze(habits, risk_result["peak_risk"])
+    sensitivity_result = sensitivity_analyze(habits, peak_risk, existing_conditions)
 
-    # ── Step 6: Brute-force benchmark (for complexity comparison chart) ────────
+    # ── Step 6: Brute-force benchmark ─────────────────────────────────────────
     bf_result = run_brute_force(dag, max_nodes=18)
 
-    # ── Annotate graph nodes with risk scores for visualization ───────────────
-    worst_path_set = set(risk_result["worst_path"])
+    # ── Annotate every node for D3 visualization ──────────────────────────────
+    worst_path_set = set(worst_path)
     node_annotations = {}
     for node_id in dag.get_all_node_ids():
         node_annotations[node_id] = {
-            "dp_score": round(risk_result["dp"].get(node_id, 0.0), 4),
-            "on_worst_path": node_id in worst_path_set,
+            "dp_score":       round(risk_result["dp"].get(node_id, 0.0), 4),
+            "on_worst_path":  node_id in worst_path_set,
             "path_edge_risk": round(risk_result["node_risk"].get(node_id, 0.0), 4),
-            "label": dag.get_node_label(node_id),
-            "category": dag.get_node_category(node_id),
+            "label":          dag.get_node_label(node_id),
+            "category":       dag.get_node_category(node_id),
+            "is_origin":      dag.is_origin.get(node_id, False),
         }
 
     total_runtime_ms = round((time.perf_counter() - t_total) * 1000, 2)
 
     return {
-        # Graph structure for D3 visualization
-        "graph": graph_data,
+        "graph":            graph_data,
         "node_annotations": node_annotations,
 
-        # Engine 1 results
         "engine1": {
-            "topo_order": topo_order,
-            "worst_path": risk_result["worst_path"],
-            "worst_path_labels": [dag.get_node_label(n) for n in risk_result["worst_path"]],
-            "peak_risk": risk_result["peak_risk"],
-            "dp_scores": {k: round(v, 4) for k, v in risk_result["dp"].items()},
-            "runtime_ms": risk_result["runtime_ms"],
+            "topo_order":        topo_order,
+            "worst_path":        worst_path,
+            "worst_path_labels": [dag.get_node_label(n) for n in worst_path],
+            "peak_risk":         peak_risk,
+            "dp_scores":         {k: round(v, 4) for k, v in risk_result["dp"].items()},
+            "runtime_ms":        risk_result["runtime_ms"],
+            "no_risk":           no_risk,
         },
 
-        # Engine 2 results
         "engine2": {
-            "budget": budget,
+            "budget":            budget,
+            "no_interventions":  knapsack_result.get("no_interventions", False),
+            "candidate_count":   knapsack_result.get("candidate_count", 0),
+            "gap":               knapsack_result["gap"],
+            "greedy_is_optimal": knapsack_result["greedy_is_optimal"],
             "dp": {
-                "selected": knapsack_result["dp"]["selected"],
-                "total_reduction": knapsack_result["dp"]["total_reduction"],
-                "cost_used": knapsack_result["dp"]["cost_used"],
-                "runtime_ms": knapsack_result["dp"]["runtime_ms"],
+                "selected":        kn_dp["selected"],
+                "total_reduction": kn_dp["total_reduction"],
+                "cost_used":       kn_dp["cost_used"],
+                "runtime_ms":      kn_dp["runtime_ms"],
             },
             "greedy": {
-                "selected": knapsack_result["greedy"]["selected"],
-                "total_reduction": knapsack_result["greedy"]["total_reduction"],
-                "cost_used": knapsack_result["greedy"]["cost_used"],
-                "runtime_ms": knapsack_result["greedy"]["runtime_ms"],
+                "selected":        kn_greedy["selected"],
+                "total_reduction": kn_greedy["total_reduction"],
+                "cost_used":       kn_greedy["cost_used"],
+                "runtime_ms":      kn_greedy["runtime_ms"],
             },
-            "gap": knapsack_result["gap"],
-            "greedy_is_optimal": knapsack_result["greedy_is_optimal"],
         },
 
-        # Sensitivity analysis
         "sensitivity": sensitivity_result,
 
-        # Complexity benchmarks
         "benchmarks": {
-            "dp_runtime_ms": risk_result["runtime_ms"],
-            "brute_force_runtime_ms": bf_result["runtime_ms"],
-            "brute_force_paths_checked": bf_result["paths_checked"],
-            "knapsack_dp_runtime_ms": knapsack_result["dp"]["runtime_ms"],
-            "knapsack_greedy_runtime_ms": knapsack_result["greedy"]["runtime_ms"],
+            "dp_runtime_ms":              risk_result["runtime_ms"],
+            "brute_force_runtime_ms":     bf_result["runtime_ms"],
+            "brute_force_paths_checked":  bf_result["paths_checked"],
+            "knapsack_dp_runtime_ms":     kn_dp["runtime_ms"],
+            "knapsack_greedy_runtime_ms": kn_greedy["runtime_ms"],
         },
 
-        # Meta
-        "patient": patient,
+        "patient":          patient,
         "total_runtime_ms": total_runtime_ms,
     }
